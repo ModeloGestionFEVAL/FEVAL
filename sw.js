@@ -1,7 +1,7 @@
 // Feval en Terreno: guarda la app en el celular para que abra rápido.
 // Siempre intenta traer la versión nueva; si no hay señal, abre la última guardada.
-var CACHE = "feval-v2";
-var BASE = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png"];
+var CACHE = "feval-v3";
+var BASE = ["./", "index.html", "tp.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable-512.png", "apple-touch-icon.png"];
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(BASE); }));
   self.skipWaiting();

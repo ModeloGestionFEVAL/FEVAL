@@ -102,6 +102,7 @@ select{font:400 15px var(--body);color:var(--ink);background:var(--bg);border:1p
 .mods{display:grid;gap:10px;margin-top:12px}
 .mod{display:flex;flex-direction:column;gap:6px;text-align:left;width:100%;border:1px solid var(--line);border-radius:14px;padding:16px;background:var(--surface);color:var(--ink);font:inherit}
 .mod.on{cursor:pointer;border-left:6px solid var(--gold)}
+a.mod{text-decoration:none}
 .mod.on:hover{border-color:var(--accent);border-left-color:var(--gold)}
 .mod.off{opacity:.65}
 .mod .mt{font:800 18px var(--display)}
@@ -494,7 +495,7 @@ function vInicio(){
   var h="<h2>Hola, "+esc(String(SES.n).split(" ")[0])+'</h2><p class="sub">Elige una herramienta.</p><div class="mods">'+
     '<button type="button" class="mod on" data-act="view" data-v="salida"><span class="mt">Coaching en terreno</span><span class="md">Evalúa al vendedor en ruta: presentación personal, pasos de la venta y feedback automático.</span>'+
     '<span class="mc">'+(enCurso()?"Salida en curso con "+esc(ev.vend)+" · Continuar":"Empezar una salida")+"</span></button>"+
-    '<div class="mod off"><span class="mt">Tienda Perfecta</span><span class="md">Auditoría del punto de venta según el estándar Nestlé por cluster.</span><span class="tag ej">Próximamente</span></div>'+
+    '<a class="mod on" href="tp.html"><span class="mt">Tienda Perfecta</span><span class="md">Auditoría del punto de venta según el estándar Nestlé por cluster.</span><span class="mc">Auditar una tienda</span></a>'+
     '<div class="mod off"><span class="mt">Muebles</span><span class="md">Inventario y censo de los muebles Nestlé en cada cliente.</span><span class="tag ej">Próximamente</span></div></div>';
   h+='<div class="blockhead"><h3>Coaching esta semana</h3><span>Desde el lunes '+esc(fechaCL(ini))+'</span></div><div class="card">';
   if(GS&&L===null){pedirHist();h+=srvErr?"<p>"+esc(srvErr)+"</p>":'<p class="sub" style="margin:0">Cargando…</p>'}
