@@ -209,7 +209,11 @@ if(!SES||!SES.t)location.replace("index.html");
 function api(m,a){return fetch(API,{method:"POST",body:JSON.stringify({m:m,a:a||[],t:SES?SES.t:""})}).then(function(r){if(!r.ok)throw new Error("No se pudo conectar con la planilla.");return r.json()}).then(function(j){
   if(j.auth===false){try{localStorage.removeItem("fe_sesion")}catch(e){}location.replace("index.html");throw new Error(j.error)}
   if(!j.ok)throw new Error(j.error||"Ocurrió un error.");return j.r})}
-var srvTP=null,srvTPerr="";
+var srvTP=null,srvTPerr="",RUTA=null,RUTAK="",RUTAERR="",ULT=null,CIDX={};
+function mismoMes(a,b){return String(a).slice(0,7)===String(b).slice(0,7)}
+function ubicar(cb){if(!navigator.geolocation){cb(null);return}var listo=false,t=setTimeout(function(){if(!listo){listo=true;cb(null)}},12000);
+  navigator.geolocation.getCurrentPosition(function(p){if(listo)return;listo=true;clearTimeout(t);cb({lat:p.coords.latitude,lng:p.coords.longitude,acc:Math.round(p.coords.accuracy)})},
+    function(){if(listo)return;listo=true;clearTimeout(t);cb(null)},{enableHighAccuracy:true,timeout:10000,maximumAge:60000})}
 var PIL={sur:"Surtido y disponibilidad",vis:"Visibilidad y exhibición",pre:"Precio",pro:"Promoción y material POP",adi:"Mueble Nestlé"};
 var PK=["sur","vis","pre","pro","adi"];
 var CL=["S","M","A+","A","B","C","D"];
@@ -248,7 +252,7 @@ var eq=load("fe_eq")||EQ0;
 var VN=eq.vend.map(function(v){return v.n});
 var CLIRAW=load("fe_cli")||[],CLI=[],CLIERR="";
 var CN=null;
-function remap(){VN=eq.vend.map(function(v){return v.n});CLI=CLIRAW.map(function(r){return [r[0],r[1],r[2],r[3],VN.indexOf(r[4])]});CN=null}
+function remap(){VN=eq.vend.map(function(v){return v.n});CLI=CLIRAW.map(function(r){return [r[0],r[1],r[2],r[3],VN.indexOf(r[4])]});CN=null;CIDX={};CLI.forEach(function(c,i){CIDX[c[0]]=i})}
 remap();
 function norm(x){return String(x).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
 function buscar(q){q=norm(q).trim();if(q.length<2)return[];
@@ -261,6 +265,44 @@ function resHTML(q){if(norm(q||"").trim().length<2)return "";
   if(!CLI.length)return '<p class="sub" style="margin:0">'+esc(CLIERR||"Cargando la maestra de clientes…")+"</p>";var r=buscar(q);
   if(!r.length)return '<p class="sub" style="margin:0">No hay clientes activos con ese nombre o código. Puedes dejar el nombre escrito y elegir el cluster a mano.</p>';
   return r.map(function(i){var c=CLI[i];return '<button type="button" class="cres" data-act="pickcli" data-i="'+i+'"><b>'+esc(c[1])+"</b><span>"+esc(c[0])+" · "+esc(c[2])+" · cluster "+esc(c[3]||"sin dato")+" · "+(c[4]>=0?esc(VN[c[4]]):"sin vendedor")+"</span></button>"}).join("")}
+function rutaHTML(){
+  if(!ev.vend||ev.cod)return "";
+  var k=ev.vend+"|"+ev.fecha;
+  if(RUTAK!==k){RUTAK=k;RUTA=null;RUTAERR="";
+    api("getRutaDia",[ev.vend,ev.fecha]).then(function(r){if(RUTAK!==k)return;RUTA=r||[];if(view==="salida"&&stage===0&&quieto())render()},
+      function(){if(RUTAK!==k)return;RUTAERR="No se pudo cargar la ruta. Revisa la conexión.";RUTA=[];if(view==="salida"&&stage===0)render()})}
+  var h='<div class="blockhead"><h3>Clientes de la ruta del '+DN[diaIdx()]+"</h3>";
+  if(RUTA===null)return h+'</div><div class="card"><p class="sub" style="margin:0">Cargando la ruta…</p></div>';
+  if(RUTAERR)return h+'</div><div class="card"><p>'+esc(RUTAERR)+'</p><div><button type="button" class="btn ghost small" data-act="reruta">Reintentar</button></div></div>';
+  if(!RUTA.length)return h+'</div><div class="card"><p class="sub" style="margin:0">'+esc(ev.vend)+" no tiene clientes con ruta el "+DN[diaIdx()]+" en la maestra. Busca la tienda por nombre.</p></div>";
+  var au=RUTA.filter(function(x){var u=ULT&&ULT[x.c];return u&&mismoMes(u.f,ev.fecha)}).length,g="";
+  h+="<span>"+au+" de "+RUTA.length+' auditadas este mes</span></div><div class="card">';
+  RUTA.forEach(function(x){if(x.ru!==g){g=x.ru;h+='<div class="oflab">Ruta '+esc(g)+"</div>"}
+    var u=ULT&&ULT[x.c],m=u&&mismoMes(u.f,ev.fecha);
+    h+='<button type="button" class="cres" data-act="pickr" data-c="'+esc(x.c)+'"><b>'+esc(x.n)+"</b><span>"+esc(x.dir)+(x.com?" · "+esc(x.com):"")+" · cluster "+esc(x.cl||"sin dato")+"</span>"+
+      (m?'<span class="tag okk">Auditada el '+esc(fechaCL(u.f))+" · "+esc(u.t)+" pts</span>":"")+"</button>"});
+  return h+"</div>"}
+function ultimaHTML(){if(!ev.cod)return "";
+  if(ULT===null)return '<p class="sub" style="margin:0">Buscando auditorías anteriores…</p>';
+  var u=ULT[ev.cod];
+  return u?'<p class="sub" style="margin:0"><b>Última auditoría:</b> '+esc(fechaCL(u.f))+" · "+esc(u.t)+" pts ("+esc(u.n)+") · "+esc(u.s)+"</p>":'<p class="sub" style="margin:0">Primera auditoría de esta tienda.</p>'}
+function compHTML(c){var u=ev.cod&&ULT?ULT[ev.cod]:null;if(!u)return "";var df=c.total-Number(u.t);
+  return '<p class="sub" style="margin:0">Auditoría anterior ('+esc(fechaCL(u.f))+"): "+esc(u.t)+" pts · hoy "+c.total+" pts ("+(df>0?"+":"")+df+")</p>"}
+function fotoGHTML(){if(!ev.cod)return "";
+  return '<div class="blockhead"><h3>Foto de la góndola</h3><span>Obligatoria</span></div><div class="card">'+
+    (ev.foto?'<img class="foto" src="'+ev.foto+'" alt="Foto de la góndola de la tienda"><div><button type="button" class="btn danger small" data-act="delfotog">Quitar foto</button></div>'
+      :'<p class="sub" style="margin:0">Saca una foto de la exhibición al llegar, antes de ordenar nada. Queda como evidencia en el correo al gerente.</p><div class="lrow"><label class="btn small filebtn" for="f-fotog">Tomar foto</label><input type="file" id="f-fotog" accept="image/*" capture="environment" class="vh"></div>')+"</div>"}
+function cargarFotoG(file){var fr=new FileReader();
+  fr.onload=function(){var im=new Image();
+    im.onload=function(){var m=1000,k=Math.min(1,m/Math.max(im.width,im.height)),cv=document.createElement("canvas");
+      cv.width=Math.round(im.width*k);cv.height=Math.round(im.height*k);cv.getContext("2d").drawImage(im,0,0,cv.width,cv.height);
+      ev.foto=cv.toDataURL("image/jpeg",0.7);save("tp_eval_n1",ev);render();toast("Foto agregada.")};
+    im.onerror=function(){toast("No se pudo leer la imagen. Prueba de nuevo.")};im.src=fr.result};
+  fr.onerror=function(){toast("No se pudo leer la foto.")};fr.readAsDataURL(file)}
+function elegirCli(i){var cc=CLI[i];if(!cc)return;ev.cli=cc[1];ev.cod=cc[0];ev.com=cc[2];ev.clraw=cc[3];ev.cvend=cc[4]>=0?VN[cc[4]]:"";
+  ev.cluster=CL.indexOf(cc[3])>=0?cc[3]:"";
+  if(!ev.vend&&cc[4]>=0){ev.vend=VN[cc[4]];ev.sup=eq.vend[cc[4]].sup;autoruta()}
+  save("tp_eval_n1",ev);render()}
 function cliHint(){if(!ev.cod)return "";
   return "Cliente activo "+ev.cod+" · "+ev.com+" · cluster "+(ev.clraw||"sin dato")+" según la maestra"+
     (CL.indexOf(ev.clraw)<0?". Ese cluster no tiene estándar definido: se exigen todos los infaltables":"")+
@@ -463,10 +505,10 @@ function vSalida(){
     '<div class="row2"><label class="f" for="f-fecha">Fecha<input type="date" id="f-fecha" data-bind="fecha" value="'+esc(ev.fecha)+'"></label>'+
     '<label class="f" for="f-ruta">Ruta del día<input type="text" id="f-ruta" data-bind="ruta" value="'+esc(ev.ruta)+'" placeholder="Se completa al elegir vendedor"></label></div>'+
     '<p class="sub" style="margin:0">'+esc(rutaHint())+"</p></div>"+
-    '<div class="card"><label class="f" for="f-cli">Buscar cliente activo por nombre o código<input type="text" id="f-cli" data-bind="cli" autocomplete="off" value="'+esc(ev.cli)+'" placeholder="Escribe al menos 2 letras"></label>'+
-    '<div id="cli-res" class="cresw">'+(ev.cod?'<p class="sub" style="margin:0">'+esc(cliHint())+"</p>":resHTML(ev.cli))+"</div>"+
+    rutaHTML()+'<div class="card"><label class="f" for="f-cli">Buscar cliente activo por nombre o código<input type="text" id="f-cli" data-bind="cli" autocomplete="off" value="'+esc(ev.cli)+'" placeholder="Escribe al menos 2 letras"></label>'+
+    '<div id="cli-res" class="cresw">'+(ev.cod?'<p class="sub" style="margin:0">'+esc(cliHint())+"</p>"+ultimaHTML()+'<div><button type="button" class="btn ghost small" data-act="cambiatienda">Cambiar tienda</button></div>':resHTML(ev.cli))+"</div>"+
     '<div class="oflab">Cluster del cliente</div><div class="ofs">'+CL.map(function(x){return '<button type="button" data-act="cluster" data-v="'+x+'" aria-pressed="'+(ev.cluster===x)+'">'+x+"</button>"}).join("")+"</div>"+
-    '<p class="sub" style="margin:0">El cluster define qué productos infaltables y qué foto de éxito le corresponden a la tienda.</p></div>'+exitoHTML(false);
+    '<p class="sub" style="margin:0">El cluster define qué productos infaltables y qué foto de éxito le corresponden a la tienda.</p></div>'+fotoGHTML()+exitoHTML(false);
   }else if(stage===1){
     h+="<h2>Auditoría de la tienda</h2><p class=\"sub\">"+esc(ev.cli||"Tienda sin nombre")+(ev.cluster?" · cluster "+ev.cluster:"")+"</p>";
     h+=exitoHTML(true);
@@ -485,7 +527,7 @@ function vResultado(){
   '<div class="card"><div class="score"><div class="big">'+c.total+"<small> /100</small></div><div><span class=\"pill "+nv[1]+'">'+nv[0]+"</span><p class=\"sub\" style=\"margin:6px 0 0\">"+c.ans+" de "+c.cnt+" ítems evaluados</p></div></div>";
   PK.forEach(function(k){var r=c.pil[k],col=r===null?"line":r>=.9?"good":r>=.7?"warn":"bad";
     h+='<div class="bar"><span>'+PIL[k]+'</span><span class="v">'+pct(r)+'</span><i><b style="width:'+(r===null?0:Math.round(r*100))+"%;background:var(--"+col+')"></b></i></div>'});
-  h+="</div>";
+  h+=compHTML(c)+'<p class="sub" style="margin:0">La ubicación se registra al enviar; el celular puede pedirte permiso la primera vez.</p></div>';
   h+='<div class="blockhead"><h3>Infaltables que faltan</h3><span>Van al pedido de hoy</span></div><div class="card">'+
   (c.falt.length?faltCat(c.falt).map(function(g){return '<div class="fb"><span class="k">'+esc(g.cat)+" · faltan "+g.it.length+'</span><span class="d">'+esc(g.it.join(", "))+"</span></div>"}).join(""):"<p>"+(c.ans?"No faltan infaltables en las categorías revisadas.":"Aún no se revisa ninguna categoría.")+"</p>")+"</div>"+
   '<div class="blockhead"><h3>Brechas a cerrar</h3><span>'+c.gaps.length+(c.gaps.length===1?" brecha":" brechas")+'</span></div><div class="card">'+
@@ -500,6 +542,7 @@ function resumen(c){
   L.push("Tienda: "+(ev.cli||"-")+(ev.cod?" ["+ev.cod+"]":"")+(ev.cluster?" (cluster "+ev.cluster+")":"")+(ev.ruta?" · Ruta: "+ev.ruta:""));
   L.push("Vendedor: "+(ev.vend||"-")+" · Supervisor: "+(ev.sup||"-"));
   L.push("Puntaje: "+c.total+"/100 ("+nv[0]+")");
+  var up=ev.cod&&ULT?ULT[ev.cod]:null;if(up)L.push("Auditoría anterior: "+fechaCL(up.f)+" · "+up.t+" pts");
   var mi=muebInst();L.push("Muebles Nestlé instalados: "+(mi.length?mi.join(", "):"ninguno registrado"));
   var ici=ICX[ev.cod];if(ici!==undefined)L.push("Censo de inventario: "+ICA[ici].map(function(ai){var e=CEN[aKey(ai)];return TIP[IA[ai][1]]+" QR "+IA[ai][0]+" "+(e?CST[e.st][0].toLowerCase():"sin censar")}).join("; "));
   PK.forEach(function(k){L.push("- "+PIL[k]+": "+pct(c.pil[k]))});
@@ -570,10 +613,11 @@ document.addEventListener("click",function(e){
   else if(a==="revcat"){if(ev.rev[d.cat])delete ev.rev[d.cat];else ev.rev[d.cat]=true;openCat=d.cat;save("tp_eval_n1",ev);render()}
   else if(a==="sup"){ev.sup=d.v;var vs=vendSel();if(!vs||vs.sup!==ev.sup){ev.vend="";ev.ruta=""}save("tp_eval_n1",ev);render()}
   else if(a==="vend"){ev.vend=d.v;autoruta();save("tp_eval_n1",ev);render()}
-  else if(a==="pickcli"){var cc=CLI[Number(d.i)];ev.cli=cc[1];ev.cod=cc[0];ev.com=cc[2];ev.clraw=cc[3];ev.cvend=cc[4]>=0?VN[cc[4]]:"";
-    ev.cluster=CL.indexOf(cc[3])>=0?cc[3]:"";
-    if(!ev.vend&&cc[4]>=0){ev.vend=VN[cc[4]];ev.sup=eq.vend[cc[4]].sup;autoruta()}
-    save("tp_eval_n1",ev);render()}
+  else if(a==="pickcli"){elegirCli(Number(d.i))}
+  else if(a==="pickr"){var rx=CIDX[d.c];if(rx===undefined){toast("Ese cliente no está en la maestra cargada. Búscalo por nombre.");return}elegirCli(rx);window.scrollTo(0,0)}
+  else if(a==="cambiatienda"){ev.cli="";ev.cod="";ev.com="";ev.clraw="";ev.cvend="";ev.cluster="";save("tp_eval_n1",ev);render()}
+  else if(a==="reruta"){RUTAK="";render()}
+  else if(a==="delfotog"){delete ev.foto;save("tp_eval_n1",ev);render()}
   else if(a==="cen"){var ce=CEN[d.k]||{};if(ce.st===d.v)delete CEN[d.k];else CEN[d.k]={st:d.v,f:hoy(),s:ev.sup||MF.sup||"",o:ce.o||""};save("tp_censo",CEN);refreshCard(b)}
   else if(a==="xopen"){var oc=b.closest(".icard");xForm=d.r;if(oc)oc.outerHTML=cardHTML(Number(oc.dataset.ci))}
   else if(a==="xadd"){var xc=IC[Number(d.ci)],xt=document.getElementById("xt-"+d.ci),xq=document.getElementById("xq-"+d.ci);
@@ -597,14 +641,19 @@ document.addEventListener("click",function(e){
   else if(a==="fin"){var c=calc();
     if(c.total===null){toast("No hay ítems evaluados todavía.");return}
     if(!ev.sup||!ev.cli){toast("Falta elegir supervisor y tienda en la etapa 1.");return}
+    if(!ev.foto){toast("Falta la foto de la góndola (etapa 1).");return}
     var pp=function(r){return r===null?null:Math.round(r*100)},pl={};PK.forEach(function(k){pl[k]=pp(c.pil[k])});
     var dat={sup:ev.sup,vend:ev.vend,fecha:ev.fecha,ruta:ev.ruta,cod:ev.cod,cli:ev.cli,com:ev.com,cluster:ev.cluster,clraw:ev.clraw,total:c.total,nivel:nivel(c.total)[0],pil:pl,
-      falt:faltCat(c.falt),gaps:c.gaps.map(function(x){return {t:x.t,fb:x.fb,pil:PIL[x.k]}}),muebles:muebInst(),obs:ev.obs||"",resp:{sc:ev.sc,inf:ev.inf,rev:ev.rev}};
-    b.disabled=true;b.textContent="Enviando…";
-    api("guardarAuditoria",[dat]).then(function(r){
-      if(!r||!r.ok){b.disabled=false;b.textContent="Guardar y auditar otra tienda";toast((r&&r.error)||"No se pudo guardar. Intenta de nuevo.");return}
-      ev=nueva(ev);save("tp_eval_n1",ev);srvTP=null;stage=0;render();window.scrollTo(0,0);toast("Auditoría enviada. Sigue con la próxima tienda.")},
-      function(){b.disabled=false;b.textContent="Guardar y auditar otra tienda";toast("No se pudo enviar. La auditoría no se pierde: toca de nuevo cuando tengas señal.")})}
+      falt:faltCat(c.falt),gaps:c.gaps.map(function(x){return {t:x.t,fb:x.fb,pil:PIL[x.k]}}),muebles:muebInst(),obs:ev.obs||"",resp:{sc:ev.sc,inf:ev.inf,rev:ev.rev},foto:ev.foto};
+    var volver=function(m){b.disabled=false;b.textContent="Enviar y auditar otra tienda";toast(m)};
+    b.disabled=true;b.textContent="Obteniendo ubicación…";
+    ubicar(function(g){dat.gps=g;b.textContent="Enviando…";
+      api("guardarAuditoria",[dat]).then(function(r){
+        if(!r||!r.ok){volver((r&&r.error)||"No se pudo guardar. Intenta de nuevo.");return}
+        if(ULT&&dat.cod)ULT[dat.cod]={r:"9",f:dat.fecha,t:dat.total,n:dat.nivel,s:dat.sup};
+        ev=nueva(ev);save("tp_eval_n1",ev);srvTP=null;stage=0;render();window.scrollTo(0,0);
+        toast("Auditoría enviada"+(r.dist===null||r.dist===undefined?(g?".":", sin ubicación."):" a "+(r.dist>=1000?(r.dist/1000).toFixed(1).replace(".",",")+" km":r.dist+" m")+" de la tienda."))},
+        function(){volver("No se pudo enviar. La auditoría no se pierde: toca de nuevo cuando tengas señal.")})})}
   else if(a==="rehist"){srvTP=null;srvTPerr="";render()}
   else if(a==="pubtp"){var cl=document.getElementById("f-clave").value;if(!cl){toast("Escribe la clave de administrador.");return}
     b.disabled=true;api("setConfigTP",[JSON.stringify(P),cl]).then(function(r){b.disabled=false;toast(r&&r.ok?"Estándar publicado para todos.":((r&&r.error)||"No se pudo publicar."))},function(){b.disabled=false;toast("No se pudo publicar. Revisa la conexión.")})}
@@ -628,6 +677,7 @@ document.addEventListener("input",function(e){
   if(t.dataset.w){P.pesos[t.dataset.w]=Math.max(0,Number(t.value)||0);save("tp_pauta_n1",P)}
 });
 document.addEventListener("change",function(e){var t=e.target;
+  if(t.id==="f-fotog"){if(t.files&&t.files[0])cargarFotoG(t.files[0]);return}
   if(t.dataset.mf){MF[t.dataset.mf]=t.value;if(t.dataset.mf==="sup")MF.vend="";MF.n=25;render();return}
   if(t.dataset.fx){if(t.files&&t.files[0])cargarExito(t.dataset.fx,t.files[0]);return}
   if(t.dataset.bulk){if(!t.value)return;P.inf.forEach(function(x){if(iCat(x)===t.dataset.bulk)x.cl=t.value});openEd=t.dataset.bulk;save("tp_pauta_n1",P);render();toast("Categoría "+t.dataset.bulk+" asignada.");return}
@@ -637,6 +687,7 @@ document.addEventListener("change",function(e){var t=e.target;
 render();
 function quieto(){var a=document.activeElement;return !(a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"||a.tagName==="SELECT"))}
 if(SES&&SES.t){
+  api("ultimasTP").then(function(r){ULT=r||{};if(quieto())render()},function(){ULT={}});
   api("getConfigTP").then(function(j){if(!j)return;try{var x=JSON.parse(j);if(x&&x.inf&&x.pesos){P=x;save("tp_pauta_n1",P);if(quieto())render()}}catch(e){}},function(){});
   api("getConfig").then(function(j){if(!j)return;try{var x=JSON.parse(j);if(x.eq&&x.eq.vend){eq=x.eq;save("fe_eq",eq);remap();if(quieto())render()}}catch(e){}},function(){});
   api("getClientes").then(function(r){CLIRAW=r||[];CLIERR=CLIRAW.length?"":"La planilla no tiene la maestra de clientes cargada.";try{localStorage.setItem("fe_cli",JSON.stringify(CLIRAW))}catch(e){}remap();
