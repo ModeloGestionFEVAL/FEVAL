@@ -160,6 +160,14 @@ nav.tabs a.navlink{flex:1;text-align:center;color:var(--muted);font:600 14px var
 details>summary{cursor:pointer;color:var(--accent);font-weight:600;margin-top:4px}
 .seg button.c-good[aria-pressed="true"]{background:var(--good);border-color:var(--good);color:var(--surface);font-weight:600}
 .seg button.c-bad[aria-pressed="true"]{background:var(--bad);border-color:var(--bad);color:var(--surface);font-weight:600}
+.finw{display:flex;flex-direction:column;gap:6px;align-items:flex-start;border-top:1px solid var(--line);padding-top:10px}
+.crow{display:flex;flex-direction:column;gap:4px;width:100%;text-align:left;border:1px solid var(--line);border-left:6px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:12px;margin-top:8px;font:inherit;cursor:pointer}
+.crow.part{border-left-color:var(--warn)}
+.crow.done{border-left-color:var(--good);background:var(--good-soft)}
+.crow .ct{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.crow .pill{white-space:nowrap}
+.vli.done{background:var(--good-soft);border-radius:8px;padding-left:8px;padding-right:8px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
 .actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
 .btn{flex:1;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:13px 14px;font:600 15px var(--body);cursor:pointer;min-width:140px}
 .btn.ghost{background:transparent;color:var(--accent)}
@@ -340,7 +348,7 @@ var IA=[];
 var TMAP={"Meson Grande":"meson_grande","Meson Chico":"meson_pequeno","Rack Grande":"rack_grande","Rack Mediano":"rack_mediano","Rack Chico":"rack_pequeno","RACK COOLER SAVORY":"rack_cooler","Apilables Chocolates":"ex_apilable"};
 var ICX={};IC.forEach(function(c,i){ICX[c[0]]=i});
 var ICA=IC.map(function(){return []});IA.forEach(function(a,i){ICA[a[3]].push(i)});
-var CEN={},XTR={},INVOK=false,INVERR="",AKX={},CENQ=load("fe_cenq")||[],enviando=false;
+var CEN={},XTR={},FIN={},MCI=-1,MSY=0,OBSG=load("fe_cenobs")||{},INVOK=false,INVERR="",AKX={},CENQ=load("fe_cenq")||[],enviando=false;
 function linkInv(){IC.forEach(function(c){c[6]=CIDX[c[0]]!==undefined?CIDX[c[0]]:-1});ICX={};IC.forEach(function(c,i){ICX[c[0]]=i});
   ICA=IC.map(function(){return []});IA.forEach(function(a,i){ICA[a[3]].push(i)});AKX={};IA.forEach(function(a,i){AKX[aKey(i)]=i})}
 function infoAsset(k){var ai=AKX[k];if(ai===undefined)return {};var a=IA[ai],ci=a[3],c=IC[ci],v=icVend(ci);
@@ -355,6 +363,7 @@ function enviarCola(){if(enviando||!CENQ.length)return;enviando=true;var lote=CE
 function aplicarCola(){CENQ.forEach(function(x){
   if(x.st==="extra"){var l=XTR[x.rut]=XTR[x.rut]||[];if(!l.some(function(m){return m.k===x.k}))l.push({k:x.k,t:x.tipo,q:x.qr,f:x.f,s:SES.n})}
   else if(x.st==="extra_borrado"){if(XTR[x.rut]){XTR[x.rut]=XTR[x.rut].filter(function(m){return m.k!==x.k});if(!XTR[x.rut].length)delete XTR[x.rut]}}
+  else if(x.st==="fin")FIN[x.rut]={f:x.f,s:SES.n};
   else if(x.st)CEN[x.k]={st:x.st,f:x.f,s:SES.n,o:x.o||""};else delete CEN[x.k]})}
 var CST={ok:["Está y bien usado","good"],mal:["Está, mal usado","warn"],dan:["Dañado","warn"],no:["No está","bad"]};
 var MF={sup:"",vend:"",est:"act",q:"",n:25},xForm="",clrArm=false;
@@ -370,7 +379,7 @@ function pc(a,b){return b?Math.round(a/b*100)+" %":"–"}
 function tile(n,t){return '<div class="tile"><b>'+n+"</b><span>"+t+"</span></div>"}
 function tilesHTML(cis){var o=mStats(cis);
   return '<div class="tiles t4">'+tile(o.m,"Muebles en inventario")+tile(pc(o.c,o.m),"Censados ("+o.c+")")+tile(o.no,"No están")+tile(o.mal+o.dan,"Mal usados o dañados")+"</div>"+
-    '<div class="tiles t4">'+tile(pc(o.corr,o.ev),"Mueble correcto según Nestlé")+tile(o.ok,"Bien usados")+tile(o.x,"Encontrados sin registro")+tile(cis.length,"Clientes")+"</div>"}
+    '<div class="tiles t4">'+tile(pc(o.corr,o.ev),"Mueble correcto según Nestlé")+tile(o.ok,"Bien usados")+tile(o.x,"Encontrados sin registro")+tile(cis.filter(function(ci){return FIN[IC[ci][0]]}).length+" de "+cis.length,"Clientes con censo finalizado")+"</div>"}
 var vOpen="",vN=40;
 function vendTable(cis){if(MF.vend)return "";var g={};
   cis.forEach(function(ci){var v=icVend(ci),k=v?v.n:"Sin vendedor";g[k]=g[k]||[];g[k].push(ci)});
@@ -383,7 +392,7 @@ function vDetHTML(cis){var l=cis.slice().sort(function(a,b){return ICA[b].length
   return '<p class="m" style="margin:4px 0 6px">'+l.length+(l.length===1?" cliente":" clientes")+'. Verde: el mueble corresponde a su cluster según Nestlé. Rojo: no corresponde. Gris: sin equivalente en la lámina. Toca el nombre para ver la ficha y censar.</p>'+
     l.slice(0,vN).map(lineHTML).join("")+(l.length>vN?'<div style="padding-top:8px"><button type="button" class="btn ghost small" data-act="vmas">Ver '+Math.min(40,l.length-vN)+" más ("+(l.length-vN)+" restantes)</button></div>":"")}
 function lineHTML(ci){var c=IC[ci];
-  return '<div class="vli"><button type="button" class="vname" data-act="vcli" data-r="'+esc(c[0])+'">'+esc(c[1])+'</button><div class="m">'+esc(c[0].replace("_","-"))+" · "+esc(c[2])+" · cluster "+esc(c[4]||"sin dato")+
+  return '<div class="vli'+(FIN[c[0]]?" done":"")+'"><button type="button" class="vname" data-act="vcli" data-r="'+esc(c[0])+'">'+esc(c[1])+"</button>"+(FIN[c[0]]?' <span class="tag okk">Censado '+esc(fechaCL(FIN[c[0]].f))+"</span>":"")+'<div class="m">'+esc(c[0].replace("_","-"))+" · "+esc(c[2])+" · cluster "+esc(c[4]||"sin dato")+
     (c[6]<0?" · no está en la maestra de clientes activos":"")+'</div><div class="vm">'+ICA[ci].map(function(ai){var n=nestOk(ai),e=CEN[aKey(ai)];
       return '<span class="mchip '+(n===null?"n0":n?"n1":"n2")+'">'+esc(TIP[IA[ai][1]])+(e?" · "+CST[e.st][0].toLowerCase():"")+"</span>"}).join("")+"</div></div>"}
 function nestTag(ai){var n=nestOk(ai),cl=IC[IA[ai][3]][4]||"sin cluster";
@@ -401,11 +410,25 @@ function cardHTML(ci){var c=IC[ci],v=icVend(ci),as=ICA[ci],x=XTR[c[0]]||[],nc=as
   if(xForm===c[0])h+='<div class="arow"><div class="row2"><label class="f" for="xt-'+ci+'">Tipo de mueble<select id="xt-'+ci+'">'+TIP.map(function(t){return "<option>"+esc(t)+"</option>"}).join("")+'</select></label><label class="f" for="xq-'+ci+'">QR (si tiene)<input type="text" id="xq-'+ci+'"></label></div><div class="lrow"><button type="button" class="btn small" data-act="xadd" data-ci="'+ci+'">Agregar</button><button type="button" class="btn ghost small" data-act="xopen" data-r="">Cancelar</button></div></div>';
   else h+='<div><button type="button" class="btn ghost small" data-act="xopen" data-r="'+esc(c[0])+'">+ Mueble encontrado sin registro</button></div>';
   return h+"</div>"}
+function resCli(ci){var o={ok:0,mal:0,dan:0,no:0};ICA[ci].forEach(function(ai){var e=CEN[aKey(ai)];if(e&&o[e.st]!==undefined)o[e.st]++});return o}
+function rowHTML(ci){var c=IC[ci],v=icVend(ci),as=ICA[ci],nc=as.filter(function(ai){return CEN[aKey(ai)]}).length,fz=FIN[c[0]];
+  return '<button type="button" class="crow'+(fz?" done":nc?" part":"")+'" data-act="mabrir" data-ci="'+ci+'"><span class="ct"><b>'+esc(c[1])+'</b><span class="pill '+(fz?"good":nc?"warn":"bad")+'">'+
+    (fz?"Censado "+esc(fechaCL(fz.f)):nc+" de "+as.length+" censados")+'</span></span><span class="m">'+esc(c[0].replace("_","-"))+" · "+esc(c[2])+" · "+esc(c[3])+'</span><span class="m">Cluster '+esc(c[4]||"sin dato")+" · "+
+    (v?esc(v.n):c[6]>=0?"sin vendedor":"no está en la maestra")+" · "+as.length+(as.length===1?" mueble: ":" muebles: ")+esc(as.map(function(ai){return TIP[IA[ai][1]]}).join(", "))+"</span></button>"}
 function listHTML(cis){var q=norm(MF.q||"").trim(),ws=q?q.split(/\s+/):[];
   var f=ws.length?cis.filter(function(ci){var c=IC[ci],t=norm(c[1]+" "+c[0]+" "+c[0].replace("_","-")+" "+c[2]+" "+c[3]);return ws.every(function(w){return t.indexOf(w)>=0})}):cis;
   if(!f.length)return '<div class="card"><p>No hay clientes con muebles que coincidan con la búsqueda.</p></div>';
-  return '<p class="sub">'+f.length+(f.length===1?" cliente":" clientes")+" con muebles"+(f.length>MF.n?", se muestran "+MF.n:"")+"</p>"+f.slice(0,MF.n).map(cardHTML).join("")+
+  return '<p class="sub">'+f.length+(f.length===1?" cliente":" clientes")+" con muebles"+(f.length>MF.n?", se muestran "+MF.n:"")+"</p>"+f.slice(0,MF.n).map(rowHTML).join("")+
     (f.length>MF.n?'<div class="actions"><button type="button" class="btn ghost" data-act="vermas">Ver '+Math.min(25,f.length-MF.n)+" más</button></div>":"")}
+function vCliente(ci){var c=IC[ci],v=icVend(ci),as=ICA[ci],nc=as.filter(function(ai){return CEN[aKey(ai)]}).length,fz=FIN[c[0]],falta=as.length-nc;
+  var h='<div class="lrow" style="margin-top:12px"><button type="button" class="btn ghost small" data-act="mvolver">← Volver a la lista</button></div>'+
+    "<h2>"+esc(c[1])+'</h2><p class="sub">'+esc(c[0].replace("_","-"))+" · "+esc(c[3])+", "+esc(c[2])+" · cluster "+esc(c[4]||"sin dato")+" · "+(v?esc(v.n):"sin vendedor")+"</p>"+
+    (fz?'<p style="margin:0"><span class="tag okk">Censo finalizado el '+esc(fechaCL(fz.f))+(fz.s?" por "+esc(fz.s):"")+"</span></p>":"")+
+    '<div class="blockhead"><h3>Muebles del cliente</h3><span>'+nc+" de "+as.length+" censados</span></div>"+cardHTML(ci)+
+    '<div class="blockhead"><h3>Observación</h3><span>Opcional</span></div><div class="card"><label class="f" for="f-cobsg">Lo que encontraste en este cliente<textarea id="f-cobsg" data-cobsg="'+esc(c[0])+'" rows="3" placeholder="Por ejemplo: el cliente pide retirar el rack, mueble en bodega, exhibidor con competencia">'+esc(OBSG[c[0]]||"")+"</textarea></label></div>"+
+    '<div class="card">'+(falta?'<p class="sub" style="margin:0">'+(falta===1?"Falta 1 mueble por censar.":"Faltan "+falta+" muebles por censar.")+" Marca el estado de cada uno para poder finalizar.</p>":"")+
+    '<div class="actions" style="margin-top:0"><button type="button" class="btn" data-act="fincli" data-ci="'+ci+'"'+(falta?" disabled":"")+">"+(fz?"Finalizar y enviar de nuevo":"Finalizar y enviar")+"</button></div></div>";
+  return h}
 function vCargaInv(){
   if(INVERR)return '<h2>Inventario de muebles</h2><div class="card"><p>'+esc(INVERR)+'</p><div><button type="button" class="btn ghost small" data-act="recarga">Reintentar</button></div></div>';
   return '<h2>Inventario de muebles</h2><div class="card"><p class="sub" style="margin:0">Cargando el inventario y el censo…</p></div>'}
@@ -666,7 +689,7 @@ function vPauta(){
   '<div class="actions"><button type="button" class="btn danger small" data-act="resetpauta">Restaurar el estándar de ejemplo</button></div>';
 }
 function render(){
-  main.innerHTML=view==="muebles"?(INVOK?vMuebles():vCargaInv()):view==="salida"?vSalida():view==="historial"?vHistorial():vPauta();
+  main.innerHTML=view==="muebles"?(INVOK?(MCI>=0?vCliente(MCI):vMuebles()):vCargaInv()):view==="salida"?vSalida():view==="historial"?vHistorial():vPauta();
   document.querySelectorAll("nav.tabs button").forEach(function(b){if(b.dataset.v===view)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current")});
   live();
 }
@@ -674,7 +697,7 @@ function toast(t){var el=document.getElementById("toast");el.textContent=t;el.st
 document.addEventListener("click",function(e){
   var b=e.target.closest("[data-act]");if(!b)return;
   var a=b.dataset.act,d=b.dataset;
-  if(a==="view"){view=d.v;render();window.scrollTo(0,0)}
+  if(a==="view"){view=d.v;if(d.v==="muebles")MCI=-1;render();window.scrollTo(0,0)}
   else if(a==="stage"){stage=Number(d.v);render();window.scrollTo(0,0)}
   else if(a==="score"){var val=d.v==="na"?"na":Number(d.v);
     if(String(ev.sc[d.id])===String(val))delete ev.sc[d.id];else ev.sc[d.id]=val;
@@ -695,19 +718,27 @@ document.addEventListener("click",function(e){
   else if(a==="reruta"){RUTAK="";render()}
   else if(a==="delfotog"){delete ev.foto;save("tp_eval_n1",ev);render()}
   else if(a==="cen"){var ce=CEN[d.k]||{};if(ce.st===d.v)delete CEN[d.k];else CEN[d.k]={st:d.v,f:hoy(),s:SES.n,o:ce.o||""};
-    var ne=CEN[d.k];encolar(Object.assign(infoAsset(d.k),{k:d.k,st:ne?ne.st:"",o:ne?ne.o:""}));refreshCard(b)}
+    var ne=CEN[d.k];encolar(Object.assign(infoAsset(d.k),{k:d.k,st:ne?ne.st:"",o:ne?ne.o:""}));(MCI>=0?render():refreshCard(b))}
   else if(a==="xopen"){var oc=b.closest(".icard");xForm=d.r;if(oc)oc.outerHTML=cardHTML(Number(oc.dataset.ci))}
   else if(a==="xadd"){var xc=IC[Number(d.ci)],xt=document.getElementById("xt-"+d.ci),xq=document.getElementById("xq-"+d.ci),xk="x_"+xc[0]+"_"+Date.now();
     var nm={k:xk,t:xt?xt.value:"",q:xq?xq.value.trim():"",f:hoy(),s:SES.n};(XTR[xc[0]]=XTR[xc[0]]||[]).push(nm);
-    encolar(Object.assign(infoCli(xc[0]),{k:xk,st:"extra",tipo:nm.t,qr:nm.q}));xForm="";refreshCard(b);toast("Mueble agregado.")}
+    encolar(Object.assign(infoCli(xc[0]),{k:xk,st:"extra",tipo:nm.t,qr:nm.q}));xForm="";(MCI>=0?render():refreshCard(b));toast("Mueble agregado.")}
   else if(a==="delx"){var dm=XTR[d.r][Number(d.i)];XTR[d.r].splice(Number(d.i),1);if(!XTR[d.r].length)delete XTR[d.r];
-    if(dm&&dm.k)encolar(Object.assign(infoCli(d.r),{k:dm.k,st:"extra_borrado",tipo:dm.t,qr:dm.q}));refreshCard(b)}
+    if(dm&&dm.k)encolar(Object.assign(infoCli(d.r),{k:dm.k,st:"extra_borrado",tipo:dm.t,qr:dm.q}));(MCI>=0?render():refreshCard(b))}
   else if(a==="reenviar"){enviarCola()}
+  else if(a==="fincli"){var fci=Number(d.ci),fc=IC[fci],ro=resCli(fci),nx=(XTR[fc[0]]||[]).length,ob=String(OBSG[fc[0]]||"").trim();
+    if(ICA[fci].some(function(ai){return !CEN[aKey(ai)]})){toast("Todavía hay muebles sin censar en este cliente.");return}
+    var txt=ICA[fci].length+(ICA[fci].length===1?" mueble: ":" muebles: ")+ro.ok+" bien usados, "+(ro.mal+ro.dan)+" mal usados o dañados, "+ro.no+" no están"+(nx?", "+nx+" sin registro":"");
+    FIN[fc[0]]={f:hoy(),s:SES.n};
+    encolar(Object.assign(infoCli(fc[0]),{k:"fin_"+fc[0]+"_"+Date.now(),st:"fin",o:ob,resumen:txt,res:ro,n:ICA[fci].length,x:nx}));
+    delete OBSG[fc[0]];save("fe_cenobs",OBSG);MCI=-1;render();window.scrollTo(0,MSY);
+    toast("Censo de "+fc[1]+" finalizado y enviado.")}
   else if(a==="recarga"){INVERR="";cargarInv()}
   else if(a==="vopen"){vOpen=vOpen===d.v?"":d.v;vN=40;var vt=document.getElementById("vtab");if(vt)vt.innerHTML=vendTable(mfClients())}
   else if(a==="vmas"){vN+=40;var vt2=document.getElementById("vtab");if(vt2)vt2.innerHTML=vendTable(mfClients())}
-  else if(a==="vcli"){MF.q=d.r.replace("_","-");MF.n=25;var qi=document.getElementById("f-mq");if(qi)qi.value=MF.q;var mlc=document.getElementById("mlist");
-    if(mlc){mlc.innerHTML=listHTML(mfClients());try{mlc.scrollIntoView({behavior:"smooth",block:"start"})}catch(err){mlc.scrollIntoView()}}}
+  else if(a==="vcli"){var vx=ICX[d.r];if(vx!==undefined){MSY=window.scrollY||0;MCI=vx;xForm="";render();window.scrollTo(0,0)}}
+  else if(a==="mabrir"){MSY=window.scrollY||0;MCI=Number(d.ci);xForm="";render();window.scrollTo(0,0)}
+  else if(a==="mvolver"){MCI=-1;render();window.scrollTo(0,MSY)}
   else if(a==="vermas"){MF.n+=25;var ml=document.getElementById("mlist");if(ml)ml.innerHTML=listHTML(mfClients())}
   else if(a==="csv"){var to=document.getElementById("csvout");to.value=censoTSV();document.getElementById("csvw").style.display="";
     if(to.value.split("\n").length<2){toast("Todavía no hay muebles censados.");return}
@@ -749,6 +780,7 @@ document.addEventListener("input",function(e){
   var t=e.target,k=t.dataset.bind;
   if(t.dataset.mq){MF.q=t.value;MF.n=25;var ml=document.getElementById("mlist");if(ml)ml.innerHTML=listHTML(mfClients());return}
   if(t.dataset.cobs){var co=CEN[t.dataset.cobs];if(co)co.o=t.value;return}
+  if(t.dataset.cobsg){OBSG[t.dataset.cobsg]=t.value;save("fe_cenobs",OBSG);return}
   if(k){ev[k]=t.value;
     if(k==="cli"){ev.cod="";ev.com="";ev.clraw="";ev.cvend="";var rr=document.getElementById("cli-res");if(rr)rr.innerHTML=resHTML(t.value)}
     save("tp_eval_n1",ev);return}
@@ -782,7 +814,7 @@ function cargarInv(){render();
     try{var x=R[2]?JSON.parse(R[2]):null;if(x&&x.eq&&x.eq.vend){eq=x.eq;save("fe_eq",eq)}}catch(e){}
     if(R[3]){CLIRAW=R[3];try{localStorage.setItem("fe_cli",JSON.stringify(CLIRAW))}catch(e){}}
     remap();TIP=inv.TIP;TCAT=inv.TCAT;TOP=inv.TOP;IC=inv.IC;IA=inv.IA;linkInv();
-    CEN=R[1]&&R[1].cen||{};XTR=R[1]&&R[1].xtr||{};aplicarCola();
+    CEN=R[1]&&R[1].cen||{};XTR=R[1]&&R[1].xtr||{};FIN=R[1]&&R[1].fin||{};aplicarCola();
     if(!MF.sup&&SES.rol==="supervisor"&&eq.sups.indexOf(SES.n)>=0)MF.sup=SES.n;
     INVOK=true;render();qbar();enviarCola();
     if(!R[3])api("getClientes").then(function(r){CLIRAW=r||[];try{localStorage.setItem("fe_cli",JSON.stringify(CLIRAW))}catch(e){}remap();linkInv();if(quieto())render()},function(){})
