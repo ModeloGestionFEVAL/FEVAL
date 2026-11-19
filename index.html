@@ -496,7 +496,7 @@ function vInicio(){
     '<button type="button" class="mod on" data-act="view" data-v="salida"><span class="mt">Coaching en terreno</span><span class="md">Evalúa al vendedor en ruta: presentación personal, pasos de la venta y feedback automático.</span>'+
     '<span class="mc">'+(enCurso()?"Salida en curso con "+esc(ev.vend)+" · Continuar":"Empezar una salida")+"</span></button>"+
     '<a class="mod on" href="tp.html"><span class="mt">Tienda Perfecta</span><span class="md">Auditoría del punto de venta según el estándar Nestlé por cluster.</span><span class="mc">Auditar una tienda</span></a>'+
-    '<div class="mod off"><span class="mt">Muebles</span><span class="md">Inventario y censo de los muebles Nestlé en cada cliente.</span><span class="tag ej">Próximamente</span></div></div>';
+    '<a class="mod on" href="muebles.html"><span class="mt">Inventario de Muebles</span><span class="md">Inventario y censo de los muebles Nestlé en cada cliente.</span><span class="mc">Censar muebles</span></a></div>';
   h+='<div class="blockhead"><h3>Coaching esta semana</h3><span>Desde el lunes '+esc(fechaCL(ini))+'</span></div><div class="card">';
   if(GS&&L===null){pedirHist();h+=srvErr?"<p>"+esc(srvErr)+"</p>":'<p class="sub" style="margin:0">Cargando…</p>'}
   else{var w=(L||[]).filter(function(x){return !x.ejemplo&&String(x.fecha)>=ini}),sups=eq.sups.slice();
