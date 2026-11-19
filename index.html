@@ -510,6 +510,7 @@ function vInicio(){
 function render(){
   if(!sesion()){main.innerHTML=vLogin();var nl=document.querySelector("nav.tabs");if(nl)nl.style.display="none";
     var bl=document.getElementById("brandt");if(bl)bl.innerHTML="MODELO GESTIÓN FEVAL<small>Herramientas de supervisión</small>";var lv=document.getElementById("live");if(lv)lv.innerHTML="";return}
+  if(String(SES.rol||"").toLowerCase()==="volante"){location.replace("rutero.html");return}
   main.innerHTML=view==="inicio"?vInicio():view==="salida"?vSalida():view==="historial"?vHistorial():vPauta();
   var nvb=document.querySelector("nav.tabs");if(nvb)nvb.style.display=view==="inicio"?"none":"";
   var bt=document.getElementById("brandt");if(bt)bt.innerHTML=view==="inicio"?"MODELO GESTIÓN FEVAL<small>Herramientas de supervisión</small>":"MODELO GESTIÓN FEVAL<small>Coaching en terreno</small>";
