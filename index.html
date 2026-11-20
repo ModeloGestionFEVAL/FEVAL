@@ -498,7 +498,10 @@ function vInicio(){
     '<a class="mod on" href="tp.html"><span class="mt">Tienda Perfecta</span><span class="md">Auditoría del punto de venta según el estándar Nestlé por cluster.</span><span class="mc">Auditar una tienda</span></a>'+
     '<a class="mod on" href="muebles.html"><span class="mt">Inventario de Muebles</span><span class="md">Inventario y censo de los muebles Nestlé en cada cliente.</span><span class="mc">Censar muebles</span></a>'+
     '<a class="mod on" href="pedidos.html"><span class="mt">Catálogo y Pedidos</span><span class="md">Catálogo Nestlé con fotos: arma el pedido del cliente y cópialo al WhatsApp del vendedor.</span><span class="mc">Tomar un pedido</span></a>'+
-    '<a class="mod on" href="rutero.html"><span class="mt">Rutero</span><span class="md">Ruta de cada vendedor de lunes a viernes, en orden, con mapa y cómo llegar a cada cliente.</span><span class="mc">Ver rutas</span></a></div>';
+    '<a class="mod on" href="rutero.html"><span class="mt">Rutero</span><span class="md">Ruta de cada vendedor de lunes a viernes, en orden, con mapa y cómo llegar a cada cliente.</span><span class="mc">Ver rutas</span></a>'+
+    '<div class="mod off" aria-disabled="true"><span class="tag ej">Próximamente</span><span class="mt">ABM · Altas, Bajas y Modificaciones</span><span class="md"><b>A</b>ltas: creación de clientes.<br><b>B</b>ajas: eliminación de clientes.<br><b>M</b>odificaciones: cambio de razón social.</span></div>'+
+    '<div class="mod off" aria-disabled="true"><span class="tag ej">Próximamente</span><span class="mt">Creación de cliente</span><span class="md">Registro de clientes nuevos en terreno.</span></div>'+
+    '<div class="mod off" aria-disabled="true"><span class="tag ej">Próximamente</span><span class="mt">Info Clientes</span><span class="md">Ficha de cada cliente con sus datos en un solo lugar.</span></div></div>';
   h+='<div class="blockhead"><h3>Coaching esta semana</h3><span>Desde el lunes '+esc(fechaCL(ini))+'</span></div><div class="card">';
   if(GS&&L===null){pedirHist();h+=srvErr?"<p>"+esc(srvErr)+"</p>":'<p class="sub" style="margin:0">Cargando…</p>'}
   else{var w=(L||[]).filter(function(x){return !x.ejemplo&&String(x.fecha)>=ini}),sups=eq.sups.slice();
