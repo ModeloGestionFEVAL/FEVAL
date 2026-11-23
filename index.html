@@ -88,6 +88,8 @@ select{font:400 15px var(--body);color:var(--ink);background:var(--bg);border:1p
 .ofs button[aria-pressed="true"]::before{content:"\2713\00a0"}
 .lrow{display:flex;gap:8px;align-items:center}
 .ed .l{flex-wrap:wrap}
+.gh{font:700 13px var(--display,inherit);letter-spacing:.06em;text-transform:uppercase;color:var(--gold,#b8944a);padding:14px 0 2px;border-top:2px solid var(--line)}
+.gh:first-child{border-top:0;padding-top:2px}
 .idesc{font-size:13.5px;color:var(--muted);padding-left:32px}
 .lobj{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;border-top:1px solid var(--line);padding-top:12px}
 .lobj:first-child{border-top:0;padding-top:0}
@@ -207,7 +209,7 @@ function cliRes(q){
 function cliInfo(c){if(!c.cod)return "";
   return "Cliente de la maestra "+c.cod+" · "+(c.com||"")+" · cluster "+(c.cl||"sin dato")+(c.cv&&ev.vend&&c.cv!==ev.vend?". Atención: en la maestra este cliente es de "+c.cv:"")+"."}
 var BLK=["prep","pasos"];
-var BL={prep:"Presentación y preparación",pasos:"Los 10 pasos de la venta",pdv:"Ejecución en el punto de venta"};
+var BL={prep:"Presentación y preparación",pasos:"Pasos de la venta Nestlé",pdv:"Ejecución en el punto de venta"};
 var DEF={pesos:{prep:20,pasos:80},
 cats:["Categoría 1 (ejemplo)","Categoría 2 (ejemplo)","Categoría 3 (ejemplo)"],
 focos:[{c:"",n:"Producto foco 1 (ejemplo)",m:""},{c:"",n:"Producto foco 2 (ejemplo)",m:""},{c:"",n:"Producto foco 3 (ejemplo)",m:""}],
@@ -217,20 +219,22 @@ prep:[
  {id:"p2",d:"Está en el punto de partida a la hora acordada y visita al primer cliente dentro del horario.",t:"Puntualidad al inicio de la ruta",fb:"Empieza la ruta a la hora acordada. Cada minuto de atraso es un cliente menos al final del día.",crit:false},
  {id:"p3",d:"Celular o tablet con batería y datos, sistema de pedidos sincronizado y con la cartera del día cargada.",t:"Equipo cargado y sistema de pedidos funcionando",fb:"Revisa batería, datos y sincronización antes de salir. Sin equipo no hay pedido.",crit:false},
  {id:"p4",d:"Lleva la lista de precios vigente, el catálogo y el material POP de la campaña actual.",t:"Lista de precios, catálogo y material POP a mano",fb:"Prepara tus materiales la tarde anterior. No se puede ofrecer lo que no se puede mostrar.",crit:false},
- {id:"p5",d:"Sabe cuántos clientes visitará, en qué orden, y tiene un objetivo de venta para el día.",t:"Ruta y objetivos del día claros",fb:"Antes de partir define cuántos clientes visitarás y qué quieres lograr en cada uno.",crit:false},
- {id:"p6",d:"Conoce su venta acumulada del mes, cuánto le falta para la meta y cuánto debe vender hoy.",t:"Conoce su avance contra el presupuesto",fb:"Revisa tu venta acumulada y cuánto te falta. Quien no sabe su número no puede cerrarlo.",crit:false}
+ {id:"r1",g:"Planificar ruta",d:"Antes de comenzar la ruta, revisa el desempeño de sus clientes, identifica oportunidades y define acciones específicas.",t:"Revisa el desempeño de sus clientes y define acciones",fb:"Antes de salir, revisa qué está comprando cada cliente y define una acción concreta para cada oportunidad.",crit:false},
+ {id:"r2",g:"Planificar ruta",d:"Planifica la perfecta ejecución del día, priorizando los clientes A+/A y B.",t:"Planifica la ejecución priorizando clientes A+/A y B",fb:"Ordena tu día partiendo por los clientes A+/A y B: ahí está el mayor potencial de venta.",crit:false}
 ],
 pasos:[
- {id:"s1",d:"Antes de entrar revisa qué compró el cliente la última vez, qué dejó de comprar y define qué le va a ofrecer.",t:"Planifica la visita antes de entrar",fb:"Revisa el historial del cliente y fija un objetivo antes de entrar al local.",crit:false},
- {id:"s2",d:"Saluda con cordialidad, se identifica, llama al cliente por su nombre y busca a la persona que decide la compra.",t:"Saluda y contacta a quien decide la compra",fb:"Saluda por el nombre y busca a quien decide. Venderle a quien no decide es perder la visita.",crit:false},
- {id:"s3",d:"Recorre el local, mira dónde y cómo están exhibidos los productos y detecta espacios u oportunidades.",t:"Revisa el local y la exhibición",fb:"Recorre góndolas y vitrinas antes de hablar de pedido. Ahí están tus argumentos de venta.",crit:false},
- {id:"s4",d:"Cuenta el stock en sala y bodega, revisa fechas de vencimiento y detecta quiebres.",t:"Revisa stock, bodega y vencimientos",fb:"Cuenta el stock y revisa fechas. El pedido se construye con datos, no con lo que el cliente recuerda.",crit:false},
- {id:"s5",d:"Presenta un pedido con cantidades concretas, basado en el stock y la rotación que acaba de revisar.",t:"Propone un pedido sugerido",fb:"Llega con una cantidad propuesta según stock y rotación. No preguntes qué necesita, propón.",crit:false},
- {id:"s6",d:"Presenta primero las categorías, luego los productos foco y las promociones vigentes, explicando el beneficio para el cliente.",t:"Ofrece las categorías, los productos foco y las promociones",fb:"Presenta los productos foco en cada visita, sin excepción. Lo que no se ofrece no se vende.",crit:true,lista:true},
- {id:"s7",d:"Cuando el cliente dice que no, pregunta el motivo y responde con rotación, margen o promoción antes de ceder.",t:"Maneja las objeciones con argumentos",fb:"Ante un no, pregunta el motivo y responde con rotación, margen o promoción. No abandones al primer rechazo.",crit:false},
- {id:"s8",d:"Pide el pedido de forma directa, confirma productos y cantidades, y lo ingresa al sistema frente al cliente.",t:"Cierra el pedido",fb:"Pide el cierre de forma directa y confirma cantidades. La visita sin pedido es un costo.",crit:true},
- {id:"s9",d:"Revisa los documentos pendientes, informa el saldo y acuerda la fecha o la forma de pago.",t:"Gestiona cobranza y documentos",fb:"Revisa facturas pendientes y acuerda el pago en la misma visita.",crit:false},
- {id:"s10",d:"Confirma el día de entrega, agradece, se despide y deja la visita registrada antes de irse.",t:"Confirma la entrega, se despide y registra la visita",fb:"Confirma fecha de despacho, agradece y registra la visita antes de pasar al siguiente cliente.",crit:false}
+ {id: "v1", g: "Preparar visita", d: "Antes de ingresar al punto de venta, revisa los compromisos pendientes y las oportunidades identificadas.", t: "Revisa compromisos y oportunidades antes de entrar", fb: "Antes de entrar, revisa qué quedó pendiente con el cliente y qué oportunidad detectaste.", crit: false},
+ {id: "v2", g: "Preparar visita", d: "Revisa e identifica el material POP de Nestlé y pone atención a las acciones de la competencia.", t: "Revisa el material POP y la competencia", fb: "Mira el material POP de Nestlé y lo que hace la competencia: ahí están tus argumentos de venta.", crit: false},
+ {id: "v3", g: "Preparar visita", d: "Identifica los activos implementados (muebles), asegurando que estén en el punto de venta y en óptimas condiciones.", t: "Revisa los muebles Nestlé del local", fb: "Verifica que los muebles Nestlé estén en el local y en buen estado. Un mueble dañado es venta perdida.", crit: false},
+ {id: "e1", g: "Ejecución y visibilidad", d: "Los muebles Nestlé contienen SOLO productos Nestlé.", t: "Muebles con solo productos Nestlé", fb: "El mueble Nestlé es solo para productos Nestlé. Si hay competencia, se retira en la visita.", crit: true},
+ {id: "e2", g: "Ejecución y visibilidad", d: "El mueble tiene el surtido correcto y está ordenado.", t: "Surtido y orden correcto en el mueble", fb: "Completa el surtido y ordena el mueble en cada visita: lo que no se ve no se vende.", crit: false},
+ {id: "e3", g: "Ejecución y visibilidad", d: "Ejecuta el material POP revisando el exterior y el interior del local; lo actualiza o reemplaza si es necesario.", t: "Ejecuta el material POP dentro y fuera del local", fb: "Instala o reemplaza el material POP que falte, dentro y fuera del local.", crit: false},
+ {id: "e4", g: "Ejecución y visibilidad", d: "Actualiza y marca los precios sugeridos en muebles, góndolas y cartelería, dentro y fuera del local.", t: "Precios sugeridos marcados", fb: "Marca los precios sugeridos en muebles y góndolas: el consumidor compra lo que entiende.", crit: false},
+ {id: "e5", g: "Ejecución y visibilidad", d: "Identifica quiebres y potenciales quiebres, priorizando productos 100x100 e innovaciones de Galletas y Chocolates.", t: "Detecta quiebres, priorizando 100x100 e innovaciones", fb: "Revisa quiebres partiendo por los 100x100 e innovaciones de Galletas y Chocolates.", crit: false},
+ {id: "n1", g: "Vender", d: "Sugiere el pedido según las oportunidades detectadas antes y durante la visita, partiendo por Galletas y Chocolates, en este orden: 100x100, innovaciones, ofertas y promociones.", t: "Sugiere el pedido: 100x100, innovaciones y promociones", fb: "Propón el pedido con cantidades, en el orden 100x100, innovaciones y promociones, partiendo por Galletas y Chocolates.", crit: true, lista: true},
+ {id: "n2", g: "Vender", d: "Sugiere al cliente descargar la aplicación BEES y lo guía paso a paso, para que pueda comprar cuando quiera.", t: "Sugiere BEES y guía la descarga", fb: "Ofrece BEES y acompaña al cliente en la descarga: así puede comprarnos cuando quiera.", crit: false},
+ {id: "x1", g: "Salir", d: "Se despide, anuncia la próxima visita y la fecha de entrega del pedido.", t: "Se despide y anuncia la próxima visita y la entrega", fb: "Antes de irte, confirma la próxima visita y la fecha de entrega.", crit: false},
+ {id: "x2", g: "Salir", d: "Asegura que el pedido llegó al cliente en óptimas condiciones.", t: "Asegura que el pedido llegue en óptimas condiciones", fb: "Haz seguimiento a la entrega: un pedido que llega mal se pierde como cliente.", crit: false}
 ]};
 var EJ=[
  {fecha:"2026-11-12",vend:"Vendedor de ejemplo A",total:82,clientes:5,prio:["Maneja las objeciones con argumentos","Precios visibles"],ejemplo:true},
@@ -262,6 +266,12 @@ if(!pauta.cats){pauta.cats=clone(DEF.cats);pauta.pasos.forEach(function(it){if(i
 pauta.prep.forEach(function(it){if(it.id==="p1"&&it.foto===undefined)it.foto=true});
 if(pauta.pdv){delete pauta.pdv;pauta.pesos={prep:20,pasos:80};save("feval_pauta",pauta)}
 if(!pauta.focos){pauta.focos=clone(DEF.focos);pauta.promos=clone(DEF.promos);pauta.pasos.forEach(function(it){if(it.id==="s6")it.lista=true})}
+function migrarNestle(p){if(!p||p.pv==="nestle1")return false;
+  p.pasos=clone(DEF.pasos);
+  p.prep=(p.prep||[]).filter(function(it){return it.id!=="p5"&&it.id!=="p6"});
+  DEF.prep.forEach(function(it){if(it.g&&!p.prep.some(function(x){return x.id===it.id}))p.prep.push(clone(it))});
+  if(!p.pesos)p.pesos={prep:20,pasos:80};p.pv="nestle1";return true}
+if(migrarNestle(pauta))save("feval_pauta",pauta);
 ev.clientes.forEach(function(c){if(!c.of)c.of={}});
 var view="inicio",stage=0,ci=0;
 var LST={cats:"Categorías",focos:"Productos foco",promos:"Promociones"};
@@ -319,10 +329,11 @@ function live(){
   el.innerHTML=view==="salida"?"<b>"+(c.total===null?"–":c.total)+"</b><span>"+c.answered+" de "+c.count+" ítems</span>":"";
 }
 function itemsHTML(blk,vals,cli){
+  var gp="";
   return pauta[blk].map(function(it,i){
-    var v=vals[it.id];
+    var v=vals[it.id],gh="";if(it.g&&it.g!==gp){gp=it.g;gh='<div class="gh">'+esc(it.g)+"</div>"}
     function b(val,txt){return '<button type="button" data-act="score" data-blk="'+blk+'" data-id="'+esc(it.id)+'" data-v="'+val+'" aria-pressed="'+(String(v)===String(val))+'">'+txt+"</button>"}
-    return '<div class="item"><div class="item-t"><span class="num">'+(i+1)+"</span><span>"+esc(it.t)+"</span>"+(it.crit?' <span class="tag crit">Crítico</span>':"")+
+    return gh+'<div class="item"><div class="item-t"><span class="num">'+(i+1)+"</span><span>"+esc(it.t)+"</span>"+(it.crit?' <span class="tag crit">Crítico</span>':"")+
       '</div>'+(it.d?'<div class="idesc">'+esc(it.d)+"</div>":"")+'<div class="seg" role="group" aria-label="'+esc(it.t)+'">'+b(0,"No")+b(1,"A medias")+b(2,"Bien")+b("na","N/A")+"</div>"+(it.lista&&cli?ofHTML(cli):"")+(it.foto&&blk==="prep"?fotoHTML():"")+"</div>";
   }).join("");
 }
@@ -472,7 +483,8 @@ function vPauta(){
     h+='<div class="blockhead"><h3>'+BL[b]+'</h3></div><div class="card"><label class="wt" for="w-'+b+'">Peso en el puntaje total<input type="number" id="w-'+b+'" min="0" max="100" data-w="'+b+'" value="'+esc(pauta.pesos[b])+'"> %</label>';
     pauta[b].forEach(function(it,i){
       h+='<div class="ed"><div class="l"><span>Ítem '+(i+1)+'</span><label for="c-'+b+i+'"><input type="checkbox" id="c-'+b+i+'" data-ed="crit" data-blk="'+b+'" data-i="'+i+'"'+(it.crit?" checked":"")+'> Crítico</label>'+(b==="prep"?"":'<label for="ls-'+b+i+'"><input type="checkbox" id="ls-'+b+i+'" data-ed="lista" data-blk="'+b+'" data-i="'+i+'"'+(it.lista?" checked":"")+'> Lista foco</label>')+'</div>'+
-      '<input type="text" id="t-'+b+i+'" aria-label="Texto del ítem" data-ed="t" data-blk="'+b+'" data-i="'+i+'" value="'+esc(it.t)+'">'+
+      '<label class="oflab" for="g-'+b+i+'">Paso o grupo (opcional)</label><input type="text" id="g-'+b+i+'" data-ed="g" data-blk="'+b+'" data-i="'+i+'" value="'+esc(it.g||"")+'" placeholder="Ej.: Vender">'+
+      '<label class="oflab" for="t-'+b+i+'">Ítem</label><input type="text" id="t-'+b+i+'" aria-label="Texto del ítem" data-ed="t" data-blk="'+b+'" data-i="'+i+'" value="'+esc(it.t)+'">'+
       '<label class="oflab" for="d-'+b+i+'">Descripción: qué debe observar el supervisor</label><textarea id="d-'+b+i+'" data-ed="d" data-blk="'+b+'" data-i="'+i+'">'+esc(it.d||"")+"</textarea>"+
       '<label class="oflab" for="fb-'+b+i+'">Feedback automático si el ítem sale bajo</label>'+
       '<textarea id="fb-'+b+i+'" aria-label="Feedback automático" data-ed="fb" data-blk="'+b+'" data-i="'+i+'" placeholder="Feedback que verá el vendedor si este ítem sale bajo">'+esc(it.fb)+"</textarea>"+
@@ -583,7 +595,7 @@ document.addEventListener("click",function(e){
       .withFailureHandler(function(){b.disabled=false;toast("No se pudo publicar. Revisa la conexión.")})
       .setConfig(JSON.stringify({pauta:pauta,eq:eq}),cl)}
   else if(a==="clearhist"){hist=[];save("feval_hist",hist);render()}
-  else if(a==="additem"){pauta[d.blk].push({id:"x"+Date.now(),t:"Nuevo ítem",d:"",fb:"",crit:false});save("feval_pauta",pauta);render()}
+  else if(a==="additem"){var lg=pauta[d.blk].length?pauta[d.blk][pauta[d.blk].length-1].g||"":"";pauta[d.blk].push({id:"x"+Date.now(),g:lg,t:"Nuevo ítem",d:"",fb:"",crit:false});save("feval_pauta",pauta);render()}
   else if(a==="delitem"){pauta[d.blk].splice(Number(d.i),1);save("feval_pauta",pauta);render()}
   else if(a==="resetpauta"){pauta=clone(DEF);save("feval_pauta",pauta);render();toast("Pauta de ejemplo restaurada.")}
 });
@@ -615,7 +627,7 @@ function arranque(){
 if(GS)GS.withSuccessHandler(function(r){CLI=r||[];CN=null;var rr=document.getElementById("cli-res"),cc=ev.clientes[ci];if(rr&&cc&&!cc.cod)rr.innerHTML=cliRes(cc.nombre)})
   .withFailureHandler(function(){CLIERR="No se pudo cargar la maestra de clientes. Escribe el nombre a mano o vuelve a abrir la app.";var rr=document.getElementById("cli-res");if(rr)rr.innerHTML=cliRes("")}).getClientes();
 if(GS)GS.withSuccessHandler(function(j){if(!j)return;try{var c=JSON.parse(j);
-  if(c.pauta){pauta=c.pauta;save("feval_pauta",pauta)}
+  if(c.pauta){pauta=c.pauta;migrarNestle(pauta);save("feval_pauta",pauta)}
   if(c.eq){eq=c.eq;save("feval_equipo",eq)}
   render()}catch(e){}}).getConfig();
 }
