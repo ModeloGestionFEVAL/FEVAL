@@ -154,22 +154,56 @@ function abrir(v){VEND=v;view="ruta";DATA=load("fe_rut_"+v);ERR="";ORD=null;ORIG
     function(e){if(VEND!==v)return;ERR=String(e&&e.message||e);if(/desconocida/i.test(ERR))ERR="Falta actualizar el Código en la planilla (versión 16).";if(view==="ruta")render()})}
 function delDia(d){return DATA?DATA.cli.filter(function(c){return c.d&&c.d[d]}):[]}
 function dist(a,b){var R=6371,x=(b.lo-a.lo)*Math.PI/180*Math.cos((a.la+b.la)/2*Math.PI/180),y=(b.la-a.la)*Math.PI/180;return R*Math.sqrt(x*x+y*y)}
-/* Orden sugerido: el recorrido más corto aproximado (vecino más cercano y luego mejora 2-opt). */
-function ordenar(cs,ini){var con=cs.filter(function(c){return c.la!=null}),sin=cs.filter(function(c){return c.la==null});
-  if(con.length<3)return con.concat(sin);
-  function nn(s){var r=[s],q=con.filter(function(c){return c!==s});while(q.length){var u=r[r.length-1],bi=0,bd=1e9;q.forEach(function(c,i){var d=dist(u,c);if(d<bd){bd=d;bi=i}});r.push(q.splice(bi,1)[0])}return r}
-  function largo(r){var t=ini?dist(ini,r[0]):0;for(var i=1;i<r.length;i++)t+=dist(r[i-1],r[i]);return t}
-  var best=null,bl=1e9;
-  if(ini){var s0=con.slice().sort(function(a,b){return dist(ini,a)-dist(ini,b)})[0];best=nn(s0)}
-  else con.forEach(function(s){var r=nn(s),l=largo(r);if(l<bl){bl=l;best=r}});
-  var mejoro=true,it=0;
-  while(mejoro&&it<60){mejoro=false;it++;
-    for(var i=0;i<best.length-1;i++)for(var j=i+1;j<best.length;j++){
-      var a=i===0?(ini||null):best[i-1],b=best[i],c=best[j],d=best[j+1]||null;
-      var antes=(a?dist(a,b):0)+(d?dist(c,d):0),desp=(a?dist(a,c):0)+(d?dist(b,d):0);
-      if(desp<antes-1e-6){best=best.slice(0,i).concat(best.slice(i,j+1).reverse(),best.slice(j+1));mejoro=true}}}
-  return best.concat(sin)}
-function lista(){var k=DIA+"|"+(ORIG?"g":"");if(!ORD||ORD.k!==k||ORD.n!==(DATA?DATA.cli.length:0)){ORD={k:k,n:DATA?DATA.cli.length:0,r:ordenar(delDia(DIA),ORIG)}}return ORD.r}
+/* Secuencia del día con ventanas horarias. Pegado tal cual en rutero.html. */
+var SEQ={INI:540,FIN:1080,VISITA:10,KMH:18,FACTOR:1.35,FIJO:2};
+function sqDist(a,b){var R=6371,x=(b.lo-a.lo)*Math.PI/180*Math.cos((a.la+b.la)/2*Math.PI/180),y=(b.la-a.la)*Math.PI/180;return R*Math.sqrt(x*x+y*y)}
+function sqViaje(a,b){if(!a)return 0;var km=sqDist(a,b)*SEQ.FACTOR;return km<0.05?0:SEQ.FIJO+km/SEQ.KMH*60}
+function sqMin(s){var m=/(\d{1,2})[:.h](\d{2})/.exec(s)||/^\s*(\d{1,2})\s*$/.exec(s);if(!m)return null;var h=+m[1],mi=+(m[2]||0);return h<24&&mi<60?h*60+mi:null}
+/* Ventana de recepción de pedidos: [abre, cierra] en minutos. Sin dato = todo el día. */
+function sqVentana(c){if(c._w)return c._w;var a=null,b=null,p=String(c.hor||"").split(/\s+a\s+|\s*-\s*/);
+  if(p.length)a=sqMin(p[0]);if(p.length>1)b=sqMin(p[1]);
+  if(a==null)a=0;if(b==null||b<=a)b=1440;c._w=[a,b];return c._w}
+function sqSimular(r,t0,ini){var t=t0,prev=ini||null,eta=[],tarde=0,atraso=0;
+  for(var i=0;i<r.length;i++){var c=r[i],w=sqVentana(c);t+=sqViaje(prev,c);if(t<w[0])t=w[0];
+    eta.push(t);if(t>w[1]){tarde++;atraso+=t-w[1]}t+=SEQ.VISITA;prev=c}
+  return {eta:eta,tarde:tarde,atraso:atraso,fin:t}}
+function sqPeor(a,b){return a.tarde!==b.tarde?a.tarde>b.tarde:Math.abs(a.atraso-b.atraso)>0.5?a.atraso>b.atraso:a.fin>b.fin+0.01}
+function sqGoloso(con,s,t0,ini){var r=[],q=con.slice(),t=t0,u=ini||null;
+  if(s){q.splice(q.indexOf(s),1);r.push(s);t+=sqViaje(u,s);t=Math.max(t,sqVentana(s)[0])+SEQ.VISITA;u=s}
+  while(q.length){var bi=-1,bs=1e9,bj=-1,bl=1e9;
+    for(var i=0;i<q.length;i++){var c=q[i],w=sqVentana(c),ll=Math.max(t+sqViaje(u,c),w[0]);
+      if(ll<=w[1]){var sc=(ll-t)+0.03*Math.min(w[1]-ll,300);if(sc<bs){bs=sc;bi=i}}
+      else if(ll<bl){bl=ll;bj=i}}
+    var k=bi>=0?bi:bj,c2=q.splice(k,1)[0];t=Math.max(t+sqViaje(u,c2),sqVentana(c2)[0])+SEQ.VISITA;r.push(c2);u=c2}
+  return r}
+/* cs: clientes del día. ini: {la,lo} si se ordena desde la ubicación actual. t0: minuto de partida. */
+function secuenciar(cs,ini,t0){if(t0==null)t0=SEQ.INI;
+  var con=cs.filter(function(c){return c.la!=null&&c.src!=="dudosa"}),sin=cs.filter(function(c){return !(c.la!=null&&c.src!=="dudosa")});
+  var best=null,bs=null;
+  if(con.length){
+    var starts=ini?[null]:con.slice().sort(function(a,b){return sqVentana(a)[0]-sqVentana(b)[0]}).slice(0,Math.min(con.length,40));
+    starts.forEach(function(s){var r=sqGoloso(con,s,t0,ini),sm=sqSimular(r,t0,ini);if(!bs||sqPeor(bs,sm)){best=r;bs=sm}});
+    /* Mejora 2-opt: invierte tramos si no aumenta los atrasos y acorta el día. */
+    var mejoro=true,it=0;
+    while(mejoro&&it<25){mejoro=false;it++;
+      for(var i=0;i<best.length-1;i++)for(var j=i+1;j<best.length;j++){
+        var cand=best.slice(0,i).concat(best.slice(i,j+1).reverse(),best.slice(j+1)),sm=sqSimular(cand,t0,ini);
+        if(sqPeor(bs,sm)){best=cand;bs=sm;mejoro=true}}}
+    /* Mejora "mover uno": saca un cliente y lo prueba en otra posición. */
+    mejoro=true;it=0;
+    while(mejoro&&it<10){mejoro=false;it++;
+      for(var a=0;a<best.length;a++)for(var b=0;b<best.length;b++){if(a===b)continue;
+        var cc=best.slice(),x=cc.splice(a,1)[0];cc.splice(b,0,x);var s2=sqSimular(cc,t0,ini);
+        if(sqPeor(bs,s2)){best=cc;bs=s2;mejoro=true}}}
+  }
+  var out=(best||[]).map(function(c,i){return {c:c,eta:bs.eta[i],tarde:bs.eta[i]>sqVentana(c)[1],fuera:bs.eta[i]>=SEQ.FIN}});
+  sin.forEach(function(c){out.push({c:c,eta:null,tarde:false,fuera:false})});
+  return {r:out,tarde:bs?bs.tarde:0,fin:bs?bs.fin:null,ini:t0}}
+function sqHora(m){if(m==null)return "";m=Math.round(m);return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
+function lista(){var k=DIA+"|"+(ORIG?"g":"");if(!ORD||ORD.k!==k||ORD.n!==(DATA?DATA.cli.length:0)){
+  var t0=SEQ.INI;if(ORIG&&esHoy()){var d=new Date();t0=Math.max(SEQ.INI,d.getHours()*60+d.getMinutes())}
+  var sq=secuenciar(delDia(DIA),ORIG,t0),m={};sq.r.forEach(function(x){m[x.c.c]=x});
+  ORD={k:k,n:DATA?DATA.cli.length:0,r:sq.r.map(function(x){return x.c}),m:m,s:sq}}return ORD.r}
 function irURL(c){
   if(c.g)return c.g;
   if(c.la!=null&&c.src!=="dudosa")return "https://www.google.com/maps/dir/?api=1&destination="+c.la+","+c.lo;
@@ -183,6 +217,8 @@ function vRuta(){var h=VDR?'<h2>Hola, '+esc(String(SES.n).split(" ")[0])+'</h2><
   if(!n)return h+'<div class="card"><p class="empty">'+esc(VEND)+" no tiene clientes con visita el "+DIAS[DIA].toLowerCase()+" en la maestra.</p></div>";
   var rutas=[];L.forEach(function(c){var r=c.d[DIA];if(rutas.indexOf(r)<0)rutas.push(r)});
   h+='<p class="sub" style="margin-top:10px">'+esc(DIAS[DIA])+" · ruta "+rutas.map(esc).join(", ")+"</p>";
+  var S=ORD.s,cv=L.filter(function(c){return ORD.m[c.c]&&ORD.m[c.c].eta!=null}).length;
+  if(cv)h+='<p class="sub" style="margin-top:6px">Recorrido estimado de '+sqHora(S.ini)+" a "+sqHora(S.fin)+(S.tarde?' · <b style="color:var(--bad)">'+S.tarde+(S.tarde===1?" cliente quedaría":" clientes quedarían")+" después de su cierre de pedidos</b>":" · todos dentro de su horario de pedidos")+(S.fin>SEQ.FIN?' · <b style="color:var(--warn)">pasa de las 18:00</b>':"")+"</p>";
   h+=esHoy()?'<div class="prog"><span>'+v+" de "+n+' visitados hoy (GPS)</span><span class="tr"><i style="width:'+Math.round(100*v/n)+'%"></i></span></div>':'<p class="sub" style="margin-top:6px">Las visitas se marcan solo en la ruta de hoy.</p>';
   if(PUEDE&&esHoy())h+='<p class="sub" style="margin-top:6px">'+esc(GPSMSG)+"</p>";
   var pend=L.filter(function(c){return !visto(c.c)&&c.la!=null&&c.src!=="dudosa"}).slice(0,4);
@@ -191,7 +227,7 @@ function vRuta(){var h=VDR?'<h2>Hola, '+esc(String(SES.n).split(" ")[0])+'</h2><
     (pend.length?'<a class="btn ghost grow" target="_blank" rel="noopener" href="'+multiURL(pend)+'">Próximos '+pend.length+" en Google Maps</a>":"")+"</div>";
   if(MAPA)return h+'<div id="map" role="region" aria-label="Mapa de los clientes del día"></div><p class="sub" style="margin-top:8px">Toca un punto para ver el cliente y cómo llegar. Verde = visitado, naranjo = ubicación dudosa.</p>';
   h+='<input type="search" id="fq" placeholder="Buscar cliente en este día" autocomplete="off" value="'+esc(fq)+'"><div class="card"><div id="lst">'+lstHTML(L)+"</div></div>";
-  h+='<p class="sub" style="margin-top:10px">El orden es una sugerencia por cercanía calculada con las ubicaciones: la maestra no trae la secuencia de visita del vendedor.</p>';
+  h+='<p class="sub" style="margin-top:10px">Secuencia sugerida: parte a las 9:00 desde el primer cliente, avanza al más cercano que ya esté abierto y adelanta a los que cierran temprano la recepción de pedidos. Las horas son estimadas ('+SEQ.VISITA+' min por visita); los clientes sin ubicación confiable van al final.</p>';
   return h}
 function lstHTML(L){var q=norm(fq).trim(),out="";
   L.forEach(function(c,i){if(q&&norm(c.n+" "+c.fa+" "+c.dir+" "+c.c).indexOf(q)<0)return;out+=cliHTML(c,i)});
@@ -202,10 +238,13 @@ function cliHTML(c,i){var vi=visto(c.c),fr=String(c.fr||"").toUpperCase();
   return '<div class="cl'+(vi?" vis":"")+'"><div class="nb">'+(i+1)+'</div><div><div class="nm">'+esc(c.n)+(c.fa&&c.fa.length>2&&norm(c.fa)!==norm(c.n)?' <span class="ds">· '+esc(c.fa)+"</span>":"")+"</div>"+
     '<div class="ds">'+esc(c.dir)+(c.com?", "+esc(c.com):"")+" · "+esc(c.c)+"</div>"+
     (c.hor||c.ref?'<div class="ds">'+(c.hor?"Pedidos "+esc(c.hor):"")+(c.hor&&c.ref?" · ":"")+(c.ref?esc(c.ref):"")+"</div>":"")+
+    etaHTML(c)+
     (t?"<div>"+t+"</div>":"")+
     '<div class="act"><a class="btn small" target="_blank" rel="noopener" href="'+esc(irURL(c))+'">Cómo llegar</a>'+
     (c.tel&&c.tel.replace(/\D/g,"").length>=8?'<a class="btn ghost small" href="tel:'+esc(c.tel.replace(/[^\d+]/g,""))+'">Llamar</a>':"")+
     (PUEDE?"":'<a class="btn ghost small" href="clientes.html#'+encodeURIComponent(c.c)+'">Ficha</a>')+visBtn(c,vi)+"</div></div></div>"}
+function etaHTML(c){var x=ORD&&ORD.m[c.c];if(!x||x.eta==null)return "";
+  return '<div class="ds">Llegada estimada <b>~'+sqHora(x.eta)+"</b>"+(x.tarde?' <span class="tag b">Después del cierre ('+sqHora(sqVentana(c)[1])+")</span>":"")+(x.fuera&&!x.tarde?' <span class="tag w">Después de las 18:00</span>':"")+"</div>"}
 function visBtn(c,vi){if(vi){var x=DATA.vis[c.c];return '<span class="btn small done" aria-label="Visitado">Visitado ✓ '+esc(String(x.h||"").slice(-5))+(x.por&&norm(x.por)!==norm(VEND)?" · "+esc(x.por):"")+"</span>"}
   if(!PUEDE||!esHoy())return "";
   if(c.la==null||c.src==="dudosa")return '<span class="ds" style="align-self:center">Sin ubicación confiable: el GPS no puede validar</span>';
@@ -276,8 +315,8 @@ document.addEventListener("click",function(e){var b=e.target.closest("[data-act]
   else if(a==="dia"){DIA=Number(b.dataset.d);fq="";render()}
   else if(a==="mapa"){MAPA=!MAPA;render()}
   else if(a==="llegue"){if(!ENV[b.dataset.c])chequear(b.dataset.c,true)}
-  else if(a==="gps"){if(ORIG){ORIG=null;ORD=null;render();toast("Orden por cercanía entre clientes.");return}
-    toast("Buscando tu ubicación…");ubicar(function(p){if(!p){toast("No se pudo obtener tu ubicación. Revisa el permiso del GPS.");return}ORIG=p;ORD=null;render();toast("Ordenado desde donde estás.")})}
+  else if(a==="gps"){if(ORIG){ORIG=null;ORD=null;render();toast("Secuencia del día desde las 9:00.");return}
+    toast("Buscando tu ubicación…");ubicar(function(p){if(!p){toast("No se pudo obtener tu ubicación. Revisa el permiso del GPS.");return}ORIG=p;ORD=null;render();toast("Secuencia recalculada desde donde estás y la hora actual.")})}
 });
 document.addEventListener("input",function(e){if(e.target.id==="fq"){fq=e.target.value;document.getElementById("lst").innerHTML=lstHTML(lista())}});
 
