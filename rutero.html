@@ -254,7 +254,7 @@ function multiURL(p){var dest=p[p.length-1],w=p.slice(0,-1);
 
 /* ---------- Mapa (Leaflet + OpenStreetMap, se carga solo al abrirlo) ---------- */
 var LFL=null;
-function leaflet(cb){if(window.L){cb();return}if(LFL){LFL.push(cb);return}LFL=[cb];
+function cargarMapaLib(cb){if(window.L){cb();return}if(LFL){LFL.push(cb);return}LFL=[cb];
   var css=document.createElement("link");css.rel="stylesheet";css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(css);
   var s=document.createElement("script");s.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
   s.onload=function(){var q=LFL;LFL=null;q.forEach(function(f){f()})};
@@ -262,7 +262,7 @@ function leaflet(cb){if(window.L){cb();return}if(LFL){LFL.push(cb);return}LFL=[c
   document.head.appendChild(s)}
 function quitarMapa(){var m=MAP;MAP=null;if(!m)return;try{m.off();m.remove()}catch(e){}}
 var MAPTK=0;
-function dibujarMapa(){var tk=++MAPTK;leaflet(function(){setTimeout(function(){if(tk!==MAPTK)return;try{dibujarMapa2()}catch(e){
+function dibujarMapa(){var tk=++MAPTK;cargarMapaLib(function(){setTimeout(function(){if(tk!==MAPTK)return;try{dibujarMapa2()}catch(e){
   quitarMapa();var el=document.getElementById("map");if(el)el.innerHTML='<p class="empty">No se pudo dibujar el mapa. Toca "Ver lista" y luego "Ver mapa del día" otra vez.</p>'}},30)})}
 function dibujarMapa2(){var el=document.getElementById("map");if(!el)return;
   quitarMapa();
