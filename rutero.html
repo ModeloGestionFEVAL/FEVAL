@@ -109,7 +109,7 @@ button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible{o
 var API="https://script.google.com/macros/s/AKfycbzRdzqrBeygYI9smZPZrg9Da1uTAaQXGyYlzbH5hK816bKvRAA-u5tkqSfCamSV9Oe2zA/exec";
 var SES=null;try{SES=JSON.parse(localStorage.getItem("fe_sesion")||"null")}catch(e){}
 if(!SES||!SES.t)location.replace("index.html");
-var VOL=!!(SES&&String(SES.rol||"").toLowerCase()==="volante");
+var ROL=SES?String(SES.rol||"").toLowerCase():"",VOL=ROL==="volante",VDR=ROL==="vendedor",PUEDE=VOL||VDR;
 function api(m,a){return fetch(API,{method:"POST",body:JSON.stringify({m:m,a:a||[],t:SES?SES.t:""})}).then(function(r){if(!r.ok)throw new Error("No se pudo conectar con la planilla.");return r.json()}).then(function(j){
   if(j.auth===false){try{localStorage.removeItem("fe_sesion")}catch(e){}location.replace("index.html");throw new Error(j.error)}
   if(!j.ok)throw new Error(j.error||"Ocurrió un error.");return j.r})}
@@ -126,7 +126,8 @@ var view="equipo",VEND="",DIA=diaHoy(),DATA=null,ERR="",ORD=null,ORIG=null,MAPA=
 var VIS=load("fe_rutv")||{};
 function diaHoy(){var d=new Date().getDay();return d>=1&&d<=5?d-1:0}
 function vkey(){return VEND+"|"+hoy()}
-function visto(c){return !!(VIS[vkey()]&&VIS[vkey()][c])}
+function esHoy(){return !!(DATA&&DATA.dia!=null&&DIA===DATA.dia)}
+function visto(c){return !!(esHoy()&&DATA.vis&&DATA.vis[c])}
 function marcar(c){var k=vkey();VIS[k]=VIS[k]||{};if(VIS[k][c])delete VIS[k][c];else VIS[k][c]=1;
   Object.keys(VIS).forEach(function(x){if(x.split("|")[1]!==hoy())delete VIS[x]});save("fe_rutv",VIS)}
 
@@ -149,8 +150,8 @@ function vEquipo(){var h=(VOL?'<h2>Hola, '+esc(String(SES.n).split(" ")[0])+"</h
 
 /* ---------- Ruta de un vendedor ---------- */
 function abrir(v){VEND=v;view="ruta";DATA=load("fe_rut_"+v);ERR="";ORD=null;ORIG=null;fq="";DIA=diaHoy();render();window.scrollTo(0,0);
-  api("getRutero",[v]).then(function(r){if(VEND!==v)return;DATA=r;save("fe_rut_"+v,r);ORD=null;if(view==="ruta"&&quieto())render()},
-    function(e){if(VEND!==v)return;ERR=String(e&&e.message||e);if(/desconocida/i.test(ERR))ERR="Falta actualizar el Código en la planilla (versión 13).";if(view==="ruta")render()})}
+  api("getRutero",[v]).then(function(r){if(VEND!==v)return;DATA=r;if(r.dia!=null&&r.dia<=4&&VEND===v&&!abrir.dfix){abrir.dfix=1;DIA=r.dia}save("fe_rut_"+v,r);ORD=null;if(view==="ruta"&&quieto())render();vigilar();chequear(null,false)},
+    function(e){if(VEND!==v)return;ERR=String(e&&e.message||e);if(/desconocida/i.test(ERR))ERR="Falta actualizar el Código en la planilla (versión 16).";if(view==="ruta")render()})}
 function delDia(d){return DATA?DATA.cli.filter(function(c){return c.d&&c.d[d]}):[]}
 function dist(a,b){var R=6371,x=(b.lo-a.lo)*Math.PI/180*Math.cos((a.la+b.la)/2*Math.PI/180),y=(b.la-a.la)*Math.PI/180;return R*Math.sqrt(x*x+y*y)}
 /* Orden sugerido: el recorrido más corto aproximado (vecino más cercano y luego mejora 2-opt). */
@@ -174,7 +175,7 @@ function irURL(c){
   if(c.la!=null&&c.src!=="dudosa")return "https://www.google.com/maps/dir/?api=1&destination="+c.la+","+c.lo;
   if(c.q)return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(c.q+" "+c.com);
   return "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(c.dir+", "+c.com+", Chile")}
-function vRuta(){var h='<button type="button" class="back" data-act="equipo">‹ Vendedores</button><h2>'+esc(VEND)+"</h2>";
+function vRuta(){var h=VDR?'<h2>Hola, '+esc(String(SES.n).split(" ")[0])+'</h2><p class="sub">Tu ruta. Al llegar a cada cliente abre la app: si estás a '+((DATA&&DATA.radio)||50)+' m o menos, queda en verde.</p>':'<button type="button" class="back" data-act="equipo">‹ Vendedores</button><h2>'+esc(VEND)+"</h2>";
   if(!DATA)return h+'<div class="card">'+(ERR?"<p>"+esc(ERR)+'</p><div><button type="button" class="btn small" data-act="vend" data-v="'+esc(VEND)+'">Reintentar</button></div>':'<p class="empty">Cargando la ruta…</p>')+"</div>";
   h+='<p class="sub">'+DATA.cli.length+" clientes activos en la maestra"+(ERR?" · sin conexión, mostrando la última copia":"")+"</p>";
   h+='<div class="days">'+DC.map(function(d,i){return '<button type="button" data-act="dia" data-d="'+i+'" aria-pressed="'+(i===DIA)+'">'+d+"<small>"+delDia(i).length+"</small></button>"}).join("")+"</div>";
@@ -182,7 +183,8 @@ function vRuta(){var h='<button type="button" class="back" data-act="equipo">‹
   if(!n)return h+'<div class="card"><p class="empty">'+esc(VEND)+" no tiene clientes con visita el "+DIAS[DIA].toLowerCase()+" en la maestra.</p></div>";
   var rutas=[];L.forEach(function(c){var r=c.d[DIA];if(rutas.indexOf(r)<0)rutas.push(r)});
   h+='<p class="sub" style="margin-top:10px">'+esc(DIAS[DIA])+" · ruta "+rutas.map(esc).join(", ")+"</p>";
-  h+='<div class="prog"><span>'+v+" de "+n+' visitados</span><span class="tr"><i style="width:'+Math.round(100*v/n)+'%"></i></span></div>';
+  h+=esHoy()?'<div class="prog"><span>'+v+" de "+n+' visitados hoy (GPS)</span><span class="tr"><i style="width:'+Math.round(100*v/n)+'%"></i></span></div>':'<p class="sub" style="margin-top:6px">Las visitas se marcan solo en la ruta de hoy.</p>';
+  if(PUEDE&&esHoy())h+='<p class="sub" style="margin-top:6px">'+esc(GPSMSG)+"</p>";
   var pend=L.filter(function(c){return !visto(c.c)&&c.la!=null&&c.src!=="dudosa"}).slice(0,4);
   h+='<div class="bar"><button type="button" class="btn grow'+(MAPA?" ghost":"")+'" data-act="mapa">'+(MAPA?"Ver lista":"Ver mapa del día")+"</button>"+
     '<button type="button" class="btn ghost grow" data-act="gps">'+(ORIG?"Orden desde mi ubicación ✓":"Ordenar desde donde estoy")+"</button>"+
@@ -203,7 +205,11 @@ function cliHTML(c,i){var vi=visto(c.c),fr=String(c.fr||"").toUpperCase();
     (t?"<div>"+t+"</div>":"")+
     '<div class="act"><a class="btn small" target="_blank" rel="noopener" href="'+esc(irURL(c))+'">Cómo llegar</a>'+
     (c.tel&&c.tel.replace(/\D/g,"").length>=8?'<a class="btn ghost small" href="tel:'+esc(c.tel.replace(/[^\d+]/g,""))+'">Llamar</a>':"")+
-    (VOL?"":'<a class="btn ghost small" href="clientes.html#'+encodeURIComponent(c.c)+'">Ficha</a>')+'<button type="button" class="btn small '+(vi?"done":"ghost")+'" data-act="vis" data-c="'+esc(c.c)+'">'+(vi?"Visitado ✓":"Marcar visitado")+"</button></div></div></div>"}
+    (PUEDE?"":'<a class="btn ghost small" href="clientes.html#'+encodeURIComponent(c.c)+'">Ficha</a>')+visBtn(c,vi)+"</div></div></div>"}
+function visBtn(c,vi){if(vi){var x=DATA.vis[c.c];return '<span class="btn small done" aria-label="Visitado">Visitado ✓ '+esc(String(x.h||"").slice(-5))+(x.por&&norm(x.por)!==norm(VEND)?" · "+esc(x.por):"")+"</span>"}
+  if(!PUEDE||!esHoy())return "";
+  if(c.la==null||c.src==="dudosa")return '<span class="ds" style="align-self:center">Sin ubicación confiable: el GPS no puede validar</span>';
+  return '<button type="button" class="btn ghost small" data-act="llegue" data-c="'+esc(c.c)+'">'+(ENV[c.c]?"Validando…":"Marcar llegada")+"</button>"}
 function multiURL(p){var dest=p[p.length-1],w=p.slice(0,-1);
   return "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination="+dest.la+","+dest.lo+(w.length?"&waypoints="+encodeURIComponent(w.map(function(c){return c.la+","+c.lo}).join("|")):"")}
 
@@ -233,23 +239,51 @@ function dibujarMapa(){leaflet(function(){var el=document.getElementById("map");
 function ubicar(cb){if(!navigator.geolocation){cb(null);return}
   navigator.geolocation.getCurrentPosition(function(p){cb({la:p.coords.latitude,lo:p.coords.longitude})},function(){cb(null)},{enableHighAccuracy:true,timeout:12000,maximumAge:60000})}
 function quieto(){var a=document.activeElement;return !(a&&(a.tagName==="INPUT"||a.tagName==="TEXTAREA"))}
+/* ---------- Llegada validada por GPS ---------- */
+var GPSMSG="Buscando tu ubicación…",ENV={},ULTCHK=0,WATCH=null;
+function candidatos(){return delDia(DIA).filter(function(c){return !visto(c.c)&&c.la!=null&&c.src!=="dudosa"})}
+function metros(a,b){return Math.round(dist(a,b)*1000)}
+function chequear(cod,manual){if(!PUEDE||view!=="ruta"||!esHoy()||!navigator.geolocation)return;
+  if(manual){ENV[cod]=1;refrescar()}
+  navigator.geolocation.getCurrentPosition(function(p){procesar({la:p.coords.latitude,lo:p.coords.longitude,acc:p.coords.accuracy},cod,manual)},
+    function(){if(manual){delete ENV[cod];refrescar();toast("No se pudo leer tu ubicación. Activa el GPS y el permiso de ubicación.")}GPSMSG="Sin acceso al GPS: activa la ubicación para validar tus visitas.";refrescar()},
+    {enableHighAccuracy:true,timeout:15000,maximumAge:manual?0:10000})}
+function procesar(pos,cod,manual){var R=(DATA&&DATA.radio)||50;
+  GPSMSG="GPS activo (precisión ±"+Math.round(pos.acc)+" m). Se valida automáticamente al estar a "+R+" m o menos.";
+  var c=null;
+  if(cod)c=delDia(DIA).filter(function(x){return x.c===cod})[0];
+  else{var cs=candidatos().map(function(x){return [metros(pos,x),x]}).filter(function(z){return z[0]<=R}).sort(function(a,b){return a[0]-b[0]});c=cs.length?cs[0][1]:null}
+  if(!c){refrescar();return}
+  if(ENV[c.c]&&!manual)return;
+  ENV[c.c]=1;refrescar();
+  api("marcarVisita",[VEND,c.c,pos.la,pos.lo,Math.round(pos.acc)]).then(function(r){delete ENV[c.c];
+    if(r.marcado){DATA.vis=DATA.vis||{};DATA.vis[c.c]={h:r.h,por:SES.n,d:r.d};save("fe_rut_"+VEND,DATA);toast("✓ Llegada registrada: "+c.n+(r.d!=null?" ("+r.d+" m)":""))}
+    else if(manual){toast(r.motivo==="lejos"?"Estás a "+r.d+" m de "+c.n+". Debes estar a "+R+" m o menos.":r.motivo==="precision"?"Señal GPS débil (±"+r.prec+" m). Sal a un lugar abierto y vuelve a intentar.":"Este cliente no tiene ubicación confiable: el GPS no puede validar la visita.")}
+    refrescar()},function(e){delete ENV[c.c];refrescar();if(manual)toast(String(e&&e.message||e))})}
+function refrescar(){if(view==="ruta"&&!MAPA&&quieto()){var y=window.scrollY;render();window.scrollTo(0,y)}}
+function vigilar(){var on=PUEDE&&view==="ruta"&&esHoy()&&document.visibilityState==="visible"&&navigator.geolocation;
+  if(on&&WATCH===null){WATCH=navigator.geolocation.watchPosition(function(p){if(Date.now()-ULTCHK<15000)return;ULTCHK=Date.now();procesar({la:p.coords.latitude,lo:p.coords.longitude,acc:p.coords.accuracy},null,false)},function(){},{enableHighAccuracy:true,maximumAge:10000})}
+  if(!on&&WATCH!==null){navigator.geolocation.clearWatch(WATCH);WATCH=null}}
+document.addEventListener("visibilitychange",function(){vigilar();if(document.visibilityState==="visible")chequear(null,false)});
+setInterval(vigilar,5000);
+
 var tt;function toast(s){var t=document.getElementById("toast");t.textContent=s;t.style.display="block";clearTimeout(tt);tt=setTimeout(function(){t.style.display="none"},2600)}
 
 document.addEventListener("click",function(e){var b=e.target.closest("[data-act]");if(!b)return;var a=b.dataset.act;
-  if(a==="equipo"){view="equipo";MAPA=false;render();window.scrollTo(0,0)}
+  if(a==="equipo"){if(VDR){MAPA=false;render();return}view="equipo";MAPA=false;render();window.scrollTo(0,0)}
   else if(a==="vend")abrir(b.dataset.v);
   else if(a==="salir"){api("logout").catch(function(){});try{localStorage.removeItem("fe_sesion")}catch(er){}setTimeout(function(){location.replace("index.html")},300)}
   else if(a==="dia"){DIA=Number(b.dataset.d);fq="";render()}
   else if(a==="mapa"){MAPA=!MAPA;render()}
-  else if(a==="vis"){marcar(b.dataset.c);var y=window.scrollY;render();window.scrollTo(0,y)}
+  else if(a==="llegue"){if(!ENV[b.dataset.c])chequear(b.dataset.c,true)}
   else if(a==="gps"){if(ORIG){ORIG=null;ORD=null;render();toast("Orden por cercanía entre clientes.");return}
     toast("Buscando tu ubicación…");ubicar(function(p){if(!p){toast("No se pudo obtener tu ubicación. Revisa el permiso del GPS.");return}ORIG=p;ORD=null;render();toast("Ordenado desde donde estás.")})}
 });
 document.addEventListener("input",function(e){if(e.target.id==="fq"){fq=e.target.value;document.getElementById("lst").innerHTML=lstHTML(lista())}});
 
-if(VOL){var nv=document.querySelector("nav.tabs .wrap");if(nv)nv.innerHTML='<button data-act="equipo" aria-current="page">Rutero</button><button data-act="salir">Salir</button>'}
-render();
-api("getConfig").then(function(j){if(!j)return;try{var x=JSON.parse(j);if(x.eq&&x.eq.vend){eq=x.eq;save("fe_eq",eq);if(view==="equipo")render()}}catch(e){}},function(){});
+if(PUEDE){var nv=document.querySelector("nav.tabs .wrap");if(nv)nv.innerHTML='<button data-act="equipo" aria-current="page">Rutero</button><button data-act="salir">Salir</button>'}
+if(VDR){abrir(SES.n)}else render();
+if(!VDR)api("getConfig").then(function(j){if(!j)return;try{var x=JSON.parse(j);if(x.eq&&x.eq.vend){eq=x.eq;save("fe_eq",eq);if(view==="equipo")render()}}catch(e){}},function(){});
 </script>
 </body>
 </html>

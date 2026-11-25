@@ -149,7 +149,7 @@ nav.tabs button[aria-current="page"]{background:var(--accent-soft);color:var(--a
 var API="https://script.google.com/macros/s/AKfycbzRdzqrBeygYI9smZPZrg9Da1uTAaQXGyYlzbH5hK816bKvRAA-u5tkqSfCamSV9Oe2zA/exec";
 var SES=null;try{SES=JSON.parse(localStorage.getItem("fe_sesion")||"null")}catch(e){}
 if(!SES||!SES.t)location.replace("index.html");
-else if(String(SES.rol||"").toLowerCase()==="volante")location.replace("rutero.html");
+else if(/^(volante|vendedor)$/.test(String(SES.rol||"").toLowerCase()))location.replace("rutero.html");
 function api(m,a){return fetch(API,{method:"POST",body:JSON.stringify({m:m,a:a||[],t:SES?SES.t:""})}).then(function(r){if(!r.ok)throw new Error("No se pudo conectar con la planilla.");return r.json()}).then(function(j){
   if(j.auth===false){try{localStorage.removeItem("fe_sesion")}catch(e){}location.replace("index.html");throw new Error(j.error)}
   if(!j.ok)throw new Error(j.error||"Ocurrió un error.");return j.r})}
