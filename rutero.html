@@ -132,7 +132,7 @@ function marcar(c){var k=vkey();VIS[k]=VIS[k]||{};if(VIS[k][c])delete VIS[k][c];
   Object.keys(VIS).forEach(function(x){if(x.split("|")[1]!==hoy())delete VIS[x]});save("fe_rutv",VIS)}
 
 function render(){var m=document.getElementById("main");
-  if(MAP&&!(view==="ruta"&&MAPA)){MAP.remove();MAP=null}
+  if(MAP&&!(view==="ruta"&&MAPA))quitarMapa();
   m.innerHTML=view==="ruta"?vRuta():vEquipo();
   if(view==="ruta"&&MAPA)dibujarMapa()}
 
@@ -260,8 +260,12 @@ function leaflet(cb){if(window.L){cb();return}if(LFL){LFL.push(cb);return}LFL=[c
   s.onload=function(){var q=LFL;LFL=null;q.forEach(function(f){f()})};
   s.onerror=function(){LFL=null;var m=document.getElementById("map");if(m)m.innerHTML='<p class="empty">No se pudo cargar el mapa. Revisa la conexión.</p>'};
   document.head.appendChild(s)}
-function dibujarMapa(){leaflet(function(){var el=document.getElementById("map");if(!el)return;
-  if(MAP){MAP.remove();MAP=null}
+function quitarMapa(){var m=MAP;MAP=null;if(!m)return;try{m.off();m.remove()}catch(e){}}
+var MAPTK=0;
+function dibujarMapa(){var tk=++MAPTK;leaflet(function(){setTimeout(function(){if(tk!==MAPTK)return;try{dibujarMapa2()}catch(e){
+  quitarMapa();var el=document.getElementById("map");if(el)el.innerHTML='<p class="empty">No se pudo dibujar el mapa. Toca "Ver lista" y luego "Ver mapa del día" otra vez.</p>'}},30)})}
+function dibujarMapa2(){var el=document.getElementById("map");if(!el)return;
+  quitarMapa();
   MAP=L.map(el,{zoomControl:true});
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"© OpenStreetMap"}).addTo(MAP);
   var Lc=lista(),pts=[],line=[];
@@ -273,7 +277,7 @@ function dibujarMapa(){leaflet(function(){var el=document.getElementById("map");
   if(line.length>1)L.polyline(line,{color:"#0c2f66",weight:3,opacity:.55,dashArray:"6 6"}).addTo(MAP);
   if(ORIG){L.marker([ORIG.la,ORIG.lo],{icon:L.divIcon({className:"",html:'<div class="me"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(MAP).bindPopup("Tú estás aquí");pts.push([ORIG.la,ORIG.lo])}
   if(pts.length)MAP.fitBounds(pts,{padding:[30,30],maxZoom:16});else MAP.setView([-33.49,-70.65],11);
-  setTimeout(function(){if(MAP)MAP.invalidateSize()},200)})}
+  setTimeout(function(){if(MAP)try{MAP.invalidateSize()}catch(e){}},200)}
 
 function ubicar(cb){if(!navigator.geolocation){cb(null);return}
   navigator.geolocation.getCurrentPosition(function(p){cb({la:p.coords.latitude,lo:p.coords.longitude})},function(){cb(null)},{enableHighAccuracy:true,timeout:12000,maximumAge:60000})}
