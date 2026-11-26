@@ -254,9 +254,9 @@ var eq=load("feval_equipo")||clone(EQ0);
 var DK=["Do","Lu","Ma","Mi","Ju","Vi","Sa"],DN=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
 function diaIdx(){var q=(ev.fecha||"").split("-");return q.length===3?new Date(Number(q[0]),Number(q[1])-1,Number(q[2])).getDay():new Date().getDay()}
 function vendSel(){for(var i=0;i<eq.vend.length;i++)if(eq.vend[i].n===ev.vend)return eq.vend[i];return null}
-function autoruta(){var v=vendSel();if(v)ev.ruta=v.r[DK[diaIdx()]]||""}
-function rutaHint(){var v=vendSel();if(!v)return "Elige un vendedor para ver su ruta.";
-  return "Territorio "+v.t+" · "+(v.r[DK[diaIdx()]]?"ruta del "+DN[diaIdx()]+" según la maestra de clientes":"sin ruta asignada el "+DN[diaIdx()])}
+function autoruta(){var v=vendSel();if(v)ev.ruta=v.t!=null&&v.t!==""?String(v.t):""}
+function rutaHint(){var v=vendSel();if(!v)return "Elige un vendedor para ver su territorio.";
+  var r=v.r&&v.r[DK[diaIdx()]];return r?"Ruta del "+DN[diaIdx()]+": "+r:"Sin ruta asignada el "+DN[diaIdx()]}
 var pauta=load("feval_pauta")||clone(DEF);
 var ev=load("feval_eval")||nuevaEval();
 var hist=load("feval_hist")||(GS?[]:clone(EJ));
@@ -381,7 +381,7 @@ function vSalida(){
     (ev.sup?'<div class="oflab">Vendedores de '+esc(ev.sup)+'</div><div class="ofs">'+eq.vend.filter(function(v){return v.sup===ev.sup}).map(function(v){return '<button type="button" data-act="vend" data-v="'+esc(v.n)+'" aria-pressed="'+(ev.vend===v.n)+'">'+esc(v.n)+"</button>"}).join("")+"</div>"
       :'<p class="sub" style="margin:0">Elige un supervisor para ver sus vendedores.</p>')+
     '<div class="row2"><label class="f" for="f-fecha">Fecha<input type="date" id="f-fecha" data-bind="fecha" value="'+esc(ev.fecha)+'"></label>'+
-    '<label class="f" for="f-ruta">Ruta del día<input type="text" id="f-ruta" data-bind="ruta" value="'+esc(ev.ruta)+'" placeholder="Se completa al elegir vendedor"></label></div>'+
+    '<label class="f" for="f-ruta">Territorio<input type="text" id="f-ruta" data-bind="ruta" value="'+esc(ev.ruta)+'" placeholder="Se completa al elegir vendedor"></label></div>'+
     '<p class="sub" style="margin:0">'+esc(rutaHint())+"</p></div>";
   }else if(stage===1){
     h+='<div class="blockhead"><h2>'+BL.prep+"</h2><span>Peso "+esc(pauta.pesos.prep)+" %</span></div><p class=\"sub\">Se evalúa una vez, al inicio de la ruta.</p><div class=\"card\">"+itemsHTML("prep",ev.prep)+"</div>";
