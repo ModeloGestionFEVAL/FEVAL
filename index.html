@@ -207,8 +207,8 @@ body.lg main#main{position:relative;z-index:1;min-height:100vh;display:flex;alig
 #toast{animation:tin .28s cubic-bezier(.2,.8,.2,1)}
 @keyframes tin{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translate(-50%,0)}}
 .hero{position:relative;overflow:hidden;border-radius:18px;margin-top:14px;padding:22px 20px;color:#fff;background:radial-gradient(120% 120% at 0% 0%,#1f4c94 0%,#0c2f66 45%,#071733 100%);box-shadow:0 12px 30px rgba(12,47,102,.25)}
-.hero svg{position:absolute;inset:0;width:100%;height:100%;opacity:.55;pointer-events:none}
-.hero .hr{fill:none;stroke:#d4b26a;stroke-width:2;stroke-linecap:round;stroke-dasharray:900;stroke-dashoffset:900;animation:hdraw 2.4s .3s ease-out forwards}
+.hero svg{position:absolute;top:0;right:0;width:100%;height:100%;opacity:.6;pointer-events:none;-webkit-mask-image:linear-gradient(90deg,transparent 55%,#000 75%);mask-image:linear-gradient(90deg,transparent 55%,#000 75%)}
+.hero .hr{fill:none;stroke:#d4b26a;stroke-width:2;stroke-linecap:round;stroke-dasharray:300;stroke-dashoffset:300;animation:hdraw 2.4s .3s ease-out forwards}
 .hero .hp{fill:#fff;opacity:.8}
 .hero .hp.on{fill:#d4b26a;animation:hpulse 2.6s ease-out infinite;transform-box:fill-box;transform-origin:center}
 @keyframes hdraw{to{stroke-dashoffset:0}}
@@ -223,6 +223,24 @@ body.lg main#main{position:relative;z-index:1;min-height:100vh;display:flex;alig
 .mod.on:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(12,47,102,.12)}
 .mod.on:active{transform:scale(.985)}
 @media (prefers-reduced-motion:reduce){.hero .hr{animation:none;stroke-dashoffset:0}.hero .hp.on,.mods.anim .mod,#toast{animation:none}}
+
+.lgbox.noin{animation:none}
+.lgdotsp{display:flex;justify-content:center;gap:14px;padding:6px 0 2px;min-height:26px}
+.lgdotsp i{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.45);transition:background .15s,border-color .15s}
+.lgdotsp i.f{background:#d4b26a;border-color:#d4b26a;animation:pdot .28s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pdot{from{transform:scale(.3)}to{transform:scale(1)}}
+.lgdotsp.err i{border-color:#ff8a80;animation:lgshake .4s}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pad button{position:relative;overflow:hidden;height:58px;border-radius:14px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:#fff;font:600 24px var(--body);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:transform .08s,background .15s}
+.pad button:active,.pad button.pr{transform:scale(.93);background:rgba(212,178,106,.28)}
+.pad button .rp{position:absolute;border-radius:50%;background:rgba(255,255,255,.35);transform:scale(0);animation:rip .45s ease-out;pointer-events:none}
+@keyframes rip{to{transform:scale(3.2);opacity:0}}
+.pad .pdel{font-size:20px;color:#c4cfe3}
+.pad .pok{background:linear-gradient(135deg,#e6c77f,#b8944a);color:#0a1c3a;font-size:17px;font-weight:800;border:0;box-shadow:0 6px 18px rgba(184,148,74,.35)}
+.pad .pok:active{background:linear-gradient(135deg,#d9b866,#a5833d)}
+.pad .pok[disabled]{opacity:.7}
+.lgpinl{font-size:13px;font-weight:600;color:#c4cfe3;letter-spacing:.03em;text-transform:uppercase;text-align:center}
+@media (prefers-reduced-motion:reduce){.lgdotsp i.f,.pad button .rp{animation:none}}
 </style>
 </head>
 <body>
@@ -262,16 +280,26 @@ function lgFondo(){var bg=document.getElementById("lgbg");if(!bg||bg.dataset.ok)
 function lgSaludo(){var h=new Date().getHours();return h<12?"Buenos días":h<20?"Buenas tardes":"Buenas noches"}
 function vLogin(){
   if(NOMS===null){NOMS="cargando";api("nombres").then(function(r){NOMS=r||[];if(!sesion())render()},function(){NOMS="error";if(!sesion())render()})}
-  lgFondo();var lg=document.querySelector("header .logo"),src=lg?lg.getAttribute("src"):"";
-  var h='<div class="lgbox"><div class="lghead">'+(src?'<span class="lglogo"><img src="'+src+'" alt="FEVAL"></span>':"")+
+  lgFondo();setTimeout(function(){LGIN=true},900);var lg=document.querySelector("header .logo"),src=lg?lg.getAttribute("src"):"";
+  var h='<div class="lgbox'+(LGIN?" noin":"")+'"><div class="lghead">'+(src?'<span class="lglogo"><img src="'+src+'" alt="FEVAL"></span>':"")+
     '<h1>Modelo Gestión FEVAL</h1><p><span class="lghi">'+lgSaludo()+'</span> · Fuerza de venta Canal Tradicional</p></div><div class="lgcard">';
   if(NOMS==="cargando")return h+'<div class="lgmsg"><div class="lgdots"><span></span><span></span><span></span></div><p style="margin:10px 0 0">Conectando…</p></div></div></div>';
   if(NOMS==="error")return h+'<p class="lgmsg">No se pudo conectar. Revisa tu conexión a internet.</p><div style="text-align:center"><button type="button" class="lgghost" data-act="relogin">Reintentar</button></div></div></div>';
   if(!NOMS.length)return h+'<p class="lgmsg">Todavía no hay usuarios con PIN. El administrador debe cargarlos en la hoja Usuarios de la planilla.</p><div style="text-align:center"><button type="button" class="lgghost" data-act="relogin">Reintentar</button></div></div></div>';
   return h+'<label for="lg-n">Tu nombre<select id="lg-n">'+NOMS.map(function(n){return "<option"+(SESN===n?" selected":"")+">"+esc(n)+"</option>"}).join("")+"</select></label>"+
-    '<label for="lg-p">PIN<span class="lgpw"><input type="password" id="lg-p" inputmode="numeric" autocomplete="current-password" placeholder="••••"><button type="button" class="lgeye" data-act="lgeye" aria-label="Mostrar u ocultar PIN">Ver</button></span></label>'+
+    '<div class="lgpinl" id="lg-pl">PIN</div><input type="hidden" id="lg-p" value="'+esc(PINV)+'"><div class="lgdotsp'+(loginMsg?" err":"")+'" id="lg-d" aria-live="polite" aria-label="'+PINV.length+' dígitos ingresados">'+pinDots()+"</div>"+
     (loginMsg?'<p class="lgerr" role="alert">'+esc(loginMsg)+"</p>":"")+
-    '<button type="button" class="lgbtn" data-act="login">Entrar</button></div><p class="lgfoot">Uso interno de Feval · Tu PIN es personal</p></div>'}
+    '<div class="pad" role="group" aria-labelledby="lg-pl">'+["1","2","3","4","5","6","7","8","9"].map(function(k){return '<button type="button" data-act="pk" data-k="'+k+'">'+k+"</button>"}).join("")+
+    '<button type="button" class="pdel" data-act="pk" data-k="del" aria-label="Borrar">⌫</button><button type="button" data-act="pk" data-k="0">0</button><button type="button" class="pok" data-act="login">Entrar</button></div>'+
+    '</div><p class="lgfoot">Uso interno de Feval · Tu PIN es personal</p></div>'}
+var PINV="",LGIN=false;
+function pinDots(){var n=Math.max(4,PINV.length),h="";for(var i=0;i<n;i++)h+="<i"+(i<PINV.length?' class="f"':"")+"></i>";return h}
+function pinTecla(k,btn){if(k==="del")PINV=PINV.slice(0,-1);else if(PINV.length<8)PINV+=k;else return;
+  if(loginMsg){loginMsg="";var er=document.querySelector(".lgerr");if(er)er.remove()}
+  var d=document.getElementById("lg-d"),hi=document.getElementById("lg-p");if(hi)hi.value=PINV;
+  if(d){d.className="lgdotsp";d.innerHTML=pinDots();d.setAttribute("aria-label",PINV.length+" dígitos ingresados")}
+  try{if(navigator.vibrate)navigator.vibrate(8)}catch(e){}
+  if(btn&&!(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)){var r=document.createElement("span"),z=Math.max(btn.offsetWidth,btn.offsetHeight);r.className="rp";r.style.width=r.style.height=z+"px";r.style.left=(btn.offsetWidth-z)/2+"px";r.style.top=(btn.offsetHeight-z)/2+"px";btn.appendChild(r);setTimeout(function(){r.remove()},450)}}
 var srvHist=null,srvErr="";
 var CLI=null,CLIERR="",CN=null;
 function norm(x){return String(x).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"")}
@@ -588,8 +616,8 @@ function vInicio(){
   var L=GS?srvHist:hist,ini=semanaIni();
   var hh=new Date().getHours(),sal=hh<12?"Buenos días":hh<20?"Buenas tardes":"Buenas noches",ani=!INIANIM;INIANIM=true;
   var fch=new Date().toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long"});
-  var h='<div class="hero"><svg viewBox="0 0 400 140" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><path class="hr" d="M-10 120 L60 95 L110 108 L170 70 L230 82 L290 40 L350 55 L410 18"/>'+
-    [[60,95],[170,70],[290,40],[350,55]].map(function(p,k){return '<circle class="hp'+(k%2?"":" on")+'" cx="'+p[0]+'" cy="'+p[1]+'" r="3.5"'+(k%2?"":' style="animation-delay:'+(k*0.6)+'s"')+"/>"}).join("")+
+  var h='<div class="hero"><svg viewBox="0 0 400 140" preserveAspectRatio="xMaxYMin slice" aria-hidden="true"><path class="hr" d="M262 58 L292 34 L322 46 L352 20 L384 30 L410 12"/>'+
+    [[292,34],[322,46],[352,20],[384,30]].map(function(p,k){return '<circle class="hp'+(k%2?"":" on")+'" cx="'+p[0]+'" cy="'+p[1]+'" r="3.5"'+(k%2?"":' style="animation-delay:'+(k*0.6)+'s"')+"/>"}).join("")+
     '</svg><div class="hx"><div class="hk">'+sal+'</div><h2>'+esc(String(SES.n).split(" ")[0])+'</h2><p>'+esc(fch.charAt(0).toUpperCase()+fch.slice(1))+" · Elige una herramienta</p></div></div>"+
     '<div class="mods'+(ani?" anim":"")+'">'+
     '<button type="button" class="mod on" data-act="view" data-v="salida"><span class="mt">Coaching en terreno</span><span class="md">Evalúa al vendedor en ruta: presentación personal, pasos de la venta y feedback automático.</span>'+
@@ -651,14 +679,14 @@ document.addEventListener("click",function(e){
   else if(a==="reseteq"){eq=clone(EQ0);save("feval_equipo",eq);render();toast("Equipo restaurado desde la maestra.")}
   else if(a==="delfoto"){delete ev.foto;save("feval_eval",ev);render()}
   else if(a==="login"){var ln=document.getElementById("lg-n"),lp=document.getElementById("lg-p"),un=ln?ln.value:"",up=lp?String(lp.value).trim():"";
-    if(!un||!up){toast("Elige tu nombre y escribe tu PIN.");return}
+    if(!un||!up){var dd=document.getElementById("lg-d");if(dd){dd.className="lgdotsp";void dd.offsetWidth;dd.className="lgdotsp err"}toast("Escribe tu PIN.");return}
     b.disabled=true;b.textContent="Entrando…";
-    api("login",[un,up]).then(function(r){SES=r;save("fe_sesion",SES);SESN=r.n;save("fe_ultimo",r.n);loginMsg="";
+    api("login",[un,up]).then(function(r){PINV="";LGIN=false;SES=r;save("fe_sesion",SES);SESN=r.n;save("fe_ultimo",r.n);loginMsg="";
       if(!ev.sup&&r.rol==="supervisor"){ev.sup=r.n;save("feval_eval",ev)}
       srvHist=null;view="inicio";render();arranque()},
-      function(err){var m=(err&&err.message)||"";loginMsg=/fetch|network|load failed/i.test(m)?"No se pudo conectar. Revisa tu conexión a internet.":(m||"No se pudo ingresar.");render()})}
+      function(err){var m=(err&&err.message)||"";PINV="";loginMsg=/fetch|network|load failed/i.test(m)?"No se pudo conectar. Revisa tu conexión a internet.":(m||"No se pudo ingresar.");render()})}
   else if(a==="relogin"){NOMS=null;loginMsg="";render()}
-  else if(a==="lgeye"){var pi=document.getElementById("lg-p");if(pi){pi.type=pi.type==="password"?"text":"password";b.textContent=pi.type==="password"?"Ver":"Ocultar";pi.focus()}}
+  else if(a==="pk")pinTecla(b.dataset.k,b);
   else if(a==="logout"){api("logout").catch(function(){});SES=null;try{localStorage.removeItem("fe_sesion")}catch(er){}srvHist=null;CLI=null;CN=null;NOMS=null;loginMsg="";render()}
   else if(a==="pickc"){var px=CLI[Number(d.i)],pc2=ev.clientes[ci];pc2.nombre=px[1];pc2.cod=px[0];pc2.com=px[2];pc2.cl=px[3];pc2.cv=px[4];save("feval_eval",ev);render()}
   else if(a==="cli"){ci=Number(d.v);render()}
@@ -728,7 +756,10 @@ if(GS)GS.withSuccessHandler(function(j){if(!j)return;try{var c=JSON.parse(j);
   render()}catch(e){}}).getConfig();
 }
 if(sesion())arranque();
-document.addEventListener("keydown",function(e){if(e.key==="Enter"&&e.target&&e.target.id==="lg-p"){var lb=document.querySelector('[data-act="login"]');if(lb)lb.click()}});
+document.addEventListener("keydown",function(e){if(!document.body.classList.contains("lg")||!document.getElementById("lg-d"))return;if(e.target&&e.target.tagName==="SELECT"&&e.key!=="Enter"&&!/^\d$/.test(e.key))return;
+  if(/^\d$/.test(e.key)){e.preventDefault();var bk=document.querySelector('[data-act="pk"][data-k="'+e.key+'"]');pinTecla(e.key,bk);if(bk){bk.classList.add("pr");setTimeout(function(){bk.classList.remove("pr")},120)}}
+  else if(e.key==="Backspace"){e.preventDefault();pinTecla("del",document.querySelector('[data-k="del"]'))}
+  else if(e.key==="Enter"){e.preventDefault();var lb=document.querySelector('[data-act="login"]');if(lb&&!lb.disabled)lb.click()}});
 if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){})})}
 </script>
 </body>
