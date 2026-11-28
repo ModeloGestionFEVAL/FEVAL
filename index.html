@@ -241,6 +241,45 @@ body.lg main#main{position:relative;z-index:1;min-height:100vh;display:flex;alig
 .pad .pok[disabled]{opacity:.7}
 .lgpinl{font-size:13px;font-weight:600;color:#c4cfe3;letter-spacing:.03em;text-transform:uppercase;text-align:center}
 @media (prefers-reduced-motion:reduce){.lgdotsp i.f,.pad button .rp{animation:none}}
+
+/* ---------- Fondo sutil de toda la app (puntos azules y dorados) ---------- */
+html{background:var(--bg)}
+body:not(.lg){background:transparent}
+body::before{content:"";position:fixed;inset:-15%;z-index:-1;pointer-events:none;opacity:.55;
+  background-image:radial-gradient(circle,rgba(43,95,184,.42) 1.3px,transparent 1.8px),radial-gradient(circle,rgba(184,148,74,.5) 1.5px,transparent 2px),radial-gradient(circle,rgba(43,95,184,.22) 1px,transparent 1.5px);
+  background-size:150px 150px,240px 240px,95px 95px;background-position:0 0,70px 110px,35px 25px;animation:fxd 90s ease-in-out infinite alternate}
+@keyframes fxd{to{transform:translate3d(-4%,-3%,0)}}
+body.lg::before{display:none}
+@media (prefers-reduced-motion:reduce){body::before{animation:none}}
+
+/* galaxia del ingreso */
+#lgbg .g3{background:#5b3fa0;width:45vmax;height:45vmax;left:30%;top:35%;opacity:.16;animation-duration:26s}
+#lgbg .sky{transform-box:view-box;transform-origin:500px 350px;animation:skyrot 420s linear infinite}
+@keyframes skyrot{to{transform:rotate(360deg)}}
+#lgbg .st.sb{fill:#8fb4ff}
+#lgbg .st.sg{fill:#e6c77f}
+#lgbg .st.sw{fill:#ffffff;opacity:.8}
+#lgbg .st.tw{animation:twk 4s ease-in-out infinite}
+@keyframes twk{0%,100%{opacity:.25}50%{opacity:1}}
+#lgbg .cst{fill:none;stroke:#d4b26a;stroke-width:.8;stroke-opacity:.12;stroke-dasharray:2000;stroke-dashoffset:2000;animation:cdraw 9s ease-in-out infinite alternate}
+@keyframes cdraw{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){#lgbg .sky,#lgbg .st.tw,#lgbg .cst{animation:none}#lgbg .cst{stroke-dashoffset:0}}
+/* teclado más compacto, logo más grande */
+.lglogo img{height:62px}
+.lglogo{padding:12px 20px;border-radius:18px}
+.lgcard{gap:14px}
+.pad{gap:8px;max-width:270px;margin:0 auto;width:100%}
+.pad button{height:46px;font-size:21px;border-radius:12px}
+.pad .pdel{font-size:18px}.pad .pok{font-size:15px}
+.lgdotsp i{width:14px;height:14px}
+/* ---------- Banner de productos (techo del portal) ---------- */
+.shelf{position:relative;overflow:hidden;margin-top:14px;border-radius:16px;background:var(--surface);border:1px solid var(--line);padding:10px 0;-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.shelf .trk{display:flex;gap:12px;width:max-content;animation:shelfm 75s linear infinite}
+.shelf:hover .trk,.shelf:active .trk{animation-play-state:paused}
+.shelf .pi{flex:none;width:84px;height:84px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;padding:6px;box-sizing:border-box;box-shadow:0 2px 8px rgba(12,47,102,.08)}
+.shelf .pi img{max-width:100%;max-height:100%;object-fit:contain}
+@keyframes shelfm{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.shelf .trk{animation:none}.shelf{overflow-x:auto}}
 </style>
 </head>
 <body>
@@ -271,12 +310,13 @@ Run.prototype.withFailureHandler=function(h){return new Run(this.s,h)};
 ["getConfig","setConfig","guardarSalida","historial","getClientes"].forEach(function(m){Run.prototype[m]=function(){var s=this.s,f=this.f;api(m,[].slice.call(arguments)).then(function(r){if(s)s(r)},function(e){if(f)f(e)})}});
 var GS=new Run(null,null);
 function lgFondo(){var bg=document.getElementById("lgbg");if(!bg||bg.dataset.ok)return;bg.dataset.ok="1";
-  var st="",pins="",i,P=[[60,520],[170,430],[250,470],[340,360],[430,400],[520,300],[610,330],[700,220],[800,260],[900,150]],Q=[[80,180],[200,240],[310,190],[420,260],[530,200],[640,270],[760,330],[870,420],[960,380]];
-  for(i=0;i<14;i++)st+='<line class="lgstreet" x1="'+(i*80-60)+'" y1="0" x2="'+(i*80+140)+'" y2="700"/>';
-  for(i=0;i<9;i++)st+='<line class="lgstreet" x1="0" y1="'+(i*80)+'" x2="1000" y2="'+(i*80-120)+'"/>';
-  function path(A){return "M"+A.map(function(p){return p[0]+" "+p[1]}).join(" L")}
-  P.concat(Q).forEach(function(p,k){pins+='<circle class="lgpin" cx="'+p[0]+'" cy="'+p[1]+'" r="3.5"/>'+(k%3===0?'<circle class="lgpin on" cx="'+p[0]+'" cy="'+p[1]+'" r="4" style="animation-delay:'+(k*0.35).toFixed(2)+'s"/>':"")});
-  bg.innerHTML='<div class="glow g1"></div><div class="glow g2"></div><svg viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice">'+st+'<path class="lgroute" d="'+path(P)+'"/><path class="lgroute r2" d="'+path(Q)+'"/>'+pins+"</svg>"}
+  var seed=11,rnd=function(){seed=(seed*16807)%2147483647;return (seed-1)/2147483646},st="",i,c,x,y,r,cls,G=[];
+  for(i=0;i<260;i++){x=-120+rnd()*1240;y=-120+rnd()*940;r=0.6+Math.pow(rnd(),2)*2.4;c=rnd();cls=c<0.3?"sg":c<0.8?"sb":"sw";
+    var tw=rnd()<0.45;st+='<circle class="st '+cls+(tw?" tw":"")+'" cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+r.toFixed(2)+'"'+(tw?' style="animation-delay:'+(rnd()*5).toFixed(2)+"s;animation-duration:"+(2.5+rnd()*4).toFixed(2)+'s"':"")+"/>";
+    if(cls==="sg"&&r>1.2&&x>330&&x<670&&y>560&&y<690&&G.length<5)G.push([x,y])}
+  G.sort(function(a,b){return a[0]-b[0]});
+  var ln=G.length>2?'<path class="cst" d="M'+G.map(function(p){return p[0].toFixed(0)+" "+p[1].toFixed(0)}).join(" L")+'"/>':"";
+  bg.innerHTML='<div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div><svg viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid slice"><g class="sky">'+ln+st+"</g></svg>"}
 function lgSaludo(){var h=new Date().getHours();return h<12?"Buenos días":h<20?"Buenas tardes":"Buenas noches"}
 function vLogin(){
   if(NOMS===null){NOMS="cargando";api("nombres").then(function(r){NOMS=r||[];if(!sesion())render()},function(){NOMS="error";if(!sesion())render()})}
@@ -616,7 +656,7 @@ function vInicio(){
   var L=GS?srvHist:hist,ini=semanaIni();
   var hh=new Date().getHours(),sal=hh<12?"Buenos días":hh<20?"Buenas tardes":"Buenas noches",ani=!INIANIM;INIANIM=true;
   var fch=new Date().toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long"});
-  var h='<div class="hero"><svg viewBox="0 0 400 140" preserveAspectRatio="xMaxYMin slice" aria-hidden="true"><path class="hr" d="M262 58 L292 34 L322 46 L352 20 L384 30 L410 12"/>'+
+  var h=estante()+'<div class="hero"><svg viewBox="0 0 400 140" preserveAspectRatio="xMaxYMin slice" aria-hidden="true"><path class="hr" d="M262 58 L292 34 L322 46 L352 20 L384 30 L410 12"/>'+
     [[292,34],[322,46],[352,20],[384,30]].map(function(p,k){return '<circle class="hp'+(k%2?"":" on")+'" cx="'+p[0]+'" cy="'+p[1]+'" r="3.5"'+(k%2?"":' style="animation-delay:'+(k*0.6)+'s"')+"/>"}).join("")+
     '</svg><div class="hx"><div class="hk">'+sal+'</div><h2>'+esc(String(SES.n).split(" ")[0])+'</h2><p>'+esc(fch.charAt(0).toUpperCase()+fch.slice(1))+" · Elige una herramienta</p></div></div>"+
     '<div class="mods'+(ani?" anim":"")+'">'+
@@ -638,6 +678,10 @@ function vInicio(){
       '<div class="tile"><b>'+w.length+"</b><span>Salidas en total</span></div></div>"}
   return h+'</div><div class="actions"><button type="button" class="btn ghost small" data-act="logout">Cerrar sesión de '+esc(SES.n)+"</button></div>"}
 var INIANIM=false,CNTANIM=false;
+var SHELF=[["6813","MILO ACTIV-GO 150g","Milo"],["3653","NESCAFÉ Cappuccino (8x14g)","Mixes"],["8160","MCKAY Soda light 180g","Soda"],["1179","NESTUM Avena y Arroz 250g","Cereal infantil"],["0728","MCKAY Mini galleta mantequilla 40g","Mini"],["7981","Caldo de Costilla 8 tabletas","Caldos"],["3627","TRENCITO Galleta chocobrownie 120g","Trencito"],["8585","NESCAFE Tradición Dawn Jar 170g","Tradición"],["7969","Sopa para uno Costillas Fideo","Sopas para Uno"],["0232","NESCAFE Ecco 170g","Fina Selección"],["116","Leche condensada NESTLÉ 397g","Condensadas"],["3862","SAHNE NUSS 160g","Sahne-Nuss"],["8079","FITNESS Original 330g","Familiares"],["3012","Base Carne a la cacerola","Bases y Salsas"],["940-0","NIDO 1+ OPTIMUS 700g","Nido"],["3572-0","ALTEZA Frutilla 140g","Alteza"],["8199","MCKAY Niza 150g","McKay"],["9448","KIT KAT Fingers milk 41,5g","Kit Kat"],["3678-0","TRITON Naranja 116g","Triton"],["591","Crema Mariscos","Sopas y Cremas Familiares"],["950","CAPRI Guinda 90g","Capri"],["5866","ZUCOSOS Cereal 30g","Sachet"],["6296","Manjar Doypack 400g","Manjar"],["511","Polvo Hornear Sobre 20g","Imperial Polvos de Hornear"],["5638","NESQUIK OPTISTAR 180g (2)","Nesquik"],["9588","ZUCOSOS Cereal 100g","Bolsas"],["6729","Puré de Papas 187g","Tuco y Puré"],["3692","STARBUCKS Vanilla Latte (4x21,5g)","Starbucks"],["2178","SVELTY Calcio 800g","Svelty"],["4673","Picado NATURNES Carbonada 250g","Picados"]];
+function estante(){var d=new Date(),k=d.getFullYear()*400+d.getMonth()*31+d.getDate(),L=SHELF.slice(k%SHELF.length).concat(SHELF.slice(0,k%SHELF.length));
+  var it=L.map(function(p){return '<div class="pi"><img src="cat/'+esc(p[0])+'.jpg" alt="" title="'+esc(p[1])+'" loading="lazy"></div>'}).join("");
+  return '<div class="shelf" aria-label="Productos Nestlé que vende Feval" role="img"><div class="trk">'+it+it+"</div></div>"}
 function animarPortal(){var ms=document.querySelectorAll(".mods.anim .mod");for(var i=0;i<ms.length;i++)ms[i].style.animationDelay=(i*0.06)+"s";
   if(CNTANIM)return;var ts=document.querySelectorAll(".tiles .tile b");if(!ts.length)return;CNTANIM=true;
   if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)return;

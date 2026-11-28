@@ -131,6 +131,16 @@ nav.tabs button[aria-current="page"]{background:var(--accent-soft);color:var(--a
 .sumrow{display:flex;gap:18px;flex-wrap:wrap}
 .sumrow div{display:flex;flex-direction:column;gap:2px}
 .sumrow span{font-size:13px;color:var(--muted)}
+
+/* ---------- Fondo sutil de toda la app (puntos azules y dorados) ---------- */
+html{background:var(--bg)}
+body:not(.lg){background:transparent}
+body::before{content:"";position:fixed;inset:-15%;z-index:-1;pointer-events:none;opacity:.55;
+  background-image:radial-gradient(circle,rgba(43,95,184,.42) 1.3px,transparent 1.8px),radial-gradient(circle,rgba(184,148,74,.5) 1.5px,transparent 2px),radial-gradient(circle,rgba(43,95,184,.22) 1px,transparent 1.5px);
+  background-size:150px 150px,240px 240px,95px 95px;background-position:0 0,70px 110px,35px 25px;animation:fxd 90s ease-in-out infinite alternate}
+@keyframes fxd{to{transform:translate3d(-4%,-3%,0)}}
+body.lg::before{display:none}
+@media (prefers-reduced-motion:reduce){body::before{animation:none}}
 </style>
 </head>
 <body>
